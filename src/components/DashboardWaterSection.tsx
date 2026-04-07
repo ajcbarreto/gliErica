@@ -118,7 +118,7 @@ export function DashboardWaterSection() {
   const pct = goalMl > 0 ? Math.min(100, Math.round((totalMl / goalMl) * 100)) : 0;
 
   return (
-    <section className="rounded-2xl border border-white/5 bg-surface p-4 shadow-card">
+    <section className="rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card">
       <div className="flex items-start gap-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent">
           <Droplets className="h-5 w-5" aria-hidden />
@@ -129,7 +129,7 @@ export function DashboardWaterSection() {
             <p className="mt-1 text-sm text-zinc-500">A carregar…</p>
           ) : (
             <>
-              <p className="mt-1 text-lg font-semibold tabular-nums text-white">
+              <p className="mt-1 text-lg font-semibold tabular-nums text-zinc-900">
                 {formatLitersFromMl(totalMl)} L
                 <span className="text-sm font-normal text-zinc-500">
                   {" "}
@@ -137,7 +137,7 @@ export function DashboardWaterSection() {
                 </span>
               </p>
               <div
-                className="mt-2 h-2 overflow-hidden rounded-full bg-white/[0.06]"
+                className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-100"
                 role="progressbar"
                 aria-valuenow={pct}
                 aria-valuemin={0}
@@ -166,7 +166,7 @@ export function DashboardWaterSection() {
                 type="button"
                 disabled={adding}
                 onClick={() => void addMl(ml)}
-                className="rounded-xl border border-white/10 bg-canvas px-3 py-2 text-xs font-medium text-white transition hover:bg-white/[0.06] disabled:opacity-50"
+                className="rounded-xl border border-zinc-200 bg-canvas px-3 py-2 text-xs font-medium text-zinc-900 transition hover:bg-zinc-100 disabled:opacity-50"
               >
                 +{ml} ml
               </button>
@@ -175,7 +175,7 @@ export function DashboardWaterSection() {
               type="button"
               disabled={adding || !lastEntryId}
               onClick={() => void undoLast()}
-              className="inline-flex items-center gap-1 rounded-xl border border-white/10 px-3 py-2 text-xs font-medium text-zinc-400 transition hover:bg-white/[0.04] hover:text-white disabled:opacity-40"
+              className="inline-flex items-center gap-1 rounded-xl border border-zinc-200 px-3 py-2 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50 hover:text-zinc-900 disabled:opacity-40"
               title="Remove o último registo de hoje"
             >
               <Undo2 className="h-3.5 w-3.5" aria-hidden />
@@ -199,19 +199,19 @@ export function DashboardWaterSection() {
                 placeholder="ex: 330"
                 value={customMl}
                 onChange={(e) => setCustomMl(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-canvas px-3 py-2 text-sm tabular-nums text-white outline-none ring-accent/30 focus:ring-2"
+                className="w-full rounded-xl border border-zinc-200 bg-canvas px-3 py-2 text-sm tabular-nums text-zinc-900 outline-none ring-accent/30 focus:ring-2"
               />
             </div>
             <button
               type="submit"
               disabled={adding}
-              className="rounded-xl bg-white/[0.08] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+              className="rounded-xl bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 disabled:opacity-50"
             >
               Adicionar
             </button>
           </form>
           {msg && (
-            <p className="text-xs text-red-400" role="alert">
+            <p className="text-xs text-red-600" role="alert">
               {msg}
             </p>
           )}

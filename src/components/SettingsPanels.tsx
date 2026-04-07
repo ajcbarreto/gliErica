@@ -78,7 +78,7 @@ export function CarbGoalPanel() {
 
   if (!tryAppUserId()) {
     return (
-      <p className="rounded-2xl border border-amber-500/30 bg-amber-950/30 p-4 text-sm text-amber-100/90">
+      <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
         Configura <code className="text-xs">NEXT_PUBLIC_GLIERICA_USER_ID</code> no
         .env.local para usar a meta de hidratos.
       </p>
@@ -92,9 +92,9 @@ export function CarbGoalPanel() {
   return (
     <form
       onSubmit={(e) => void save(e)}
-      className="rounded-2xl border border-white/5 bg-surface p-4 shadow-card"
+      className="rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card"
     >
-      <p className="text-sm font-medium text-white">Meta diária de hidratos</p>
+      <p className="text-sm font-medium text-zinc-900">Meta diária de hidratos</p>
       <p className="mt-1 text-xs text-zinc-500">
         Gramas de HC por dia (usado no anel do dashboard).
       </p>
@@ -103,13 +103,13 @@ export function CarbGoalPanel() {
           inputMode="decimal"
           value={goal}
           onChange={(e) => setGoal(e.target.value)}
-          className="min-w-0 flex-1 rounded-xl border border-white/10 bg-canvas px-3 py-2 text-sm tabular-nums text-white outline-none ring-accent/30 focus:ring-2"
+          className="min-w-0 flex-1 rounded-xl border border-zinc-200 bg-canvas px-3 py-2 text-sm tabular-nums text-zinc-900 outline-none ring-accent/30 focus:ring-2"
         />
         <span className="flex items-center text-xs text-zinc-500">g / dia</span>
       </div>
       {msg && (
         <p
-          className={`mt-2 text-xs ${msg === "Guardado." ? "text-accent" : "text-red-400"}`}
+          className={`mt-2 text-xs ${msg === "Guardado." ? "text-accent" : "text-red-600"}`}
         >
           {msg}
         </p>
@@ -117,7 +117,7 @@ export function CarbGoalPanel() {
       <button
         type="submit"
         disabled={saving}
-        className="mt-3 w-full rounded-xl bg-white/[0.08] py-2.5 text-sm font-medium text-white disabled:opacity-50"
+        className="mt-3 w-full rounded-xl bg-zinc-100 py-2.5 text-sm font-medium text-zinc-900 disabled:opacity-50"
       >
         {saving ? "A guardar…" : "Guardar meta"}
       </button>
@@ -212,9 +212,9 @@ export function WaterGoalPanel() {
   return (
     <form
       onSubmit={(e) => void save(e)}
-      className="rounded-2xl border border-white/5 bg-surface p-4 shadow-card"
+      className="rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card"
     >
-      <p className="text-sm font-medium text-white">Meta diária de água</p>
+      <p className="text-sm font-medium text-zinc-900">Meta diária de água</p>
       <p className="mt-1 text-xs text-zinc-500">
         Mililitros por dia (barra de hidratação no dashboard). Ex.: 2000 = 2 L.
       </p>
@@ -223,13 +223,13 @@ export function WaterGoalPanel() {
           inputMode="numeric"
           value={goalMl}
           onChange={(e) => setGoalMl(e.target.value)}
-          className="min-w-0 flex-1 rounded-xl border border-white/10 bg-canvas px-3 py-2 text-sm tabular-nums text-white outline-none ring-accent/30 focus:ring-2"
+          className="min-w-0 flex-1 rounded-xl border border-zinc-200 bg-canvas px-3 py-2 text-sm tabular-nums text-zinc-900 outline-none ring-accent/30 focus:ring-2"
         />
         <span className="flex items-center text-xs text-zinc-500">ml / dia</span>
       </div>
       {msg && (
         <p
-          className={`mt-2 text-xs ${msg === "Guardado." ? "text-accent" : "text-red-400"}`}
+          className={`mt-2 text-xs ${msg === "Guardado." ? "text-accent" : "text-red-600"}`}
         >
           {msg}
         </p>
@@ -237,9 +237,132 @@ export function WaterGoalPanel() {
       <button
         type="submit"
         disabled={saving}
-        className="mt-3 w-full rounded-xl bg-white/[0.08] py-2.5 text-sm font-medium text-white disabled:opacity-50"
+        className="mt-3 w-full rounded-xl bg-zinc-100 py-2.5 text-sm font-medium text-zinc-900 disabled:opacity-50"
       >
         {saving ? "A guardar…" : "Guardar meta de água"}
+      </button>
+    </form>
+  );
+}
+
+/**
+ * Regra opcional: gramas de HC que 1 UI de insulina rápida cobre (definida com a equipa).
+ * Usada no dashboard só como comparação orientativa.
+ */
+export function InsulinRulePanel() {
+  const supabase = createClient();
+  const [grams, setGrams] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const userId = tryAppUserId();
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
+    const { data } = await supabase
+      .from("profiles")
+      .select("insulin_carb_grams_per_unit")
+      .eq("id", userId)
+      .maybeSingle();
+
+    const g = data?.insulin_carb_grams_per_unit;
+    if (typeof g === "number" && g > 0) {
+      setGrams(String(g));
+    } else {
+      setGrams("");
+    }
+    setLoading(false);
+  }, [supabase]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setMsg(null);
+    const trimmed = grams.trim();
+    let value: number | null = null;
+    if (trimmed !== "") {
+      const v = parseFloat(trimmed.replace(",", "."));
+      if (Number.isNaN(v) || v <= 0) {
+        setMsg("Indica um número maior que zero ou deixa vazio para limpar.");
+        return;
+      }
+      value = v;
+    }
+
+    let userId: string;
+    try {
+      userId = getAppUserId();
+    } catch {
+      setMsg("UUID da app não configurado.");
+      return;
+    }
+
+    setSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        insulin_carb_grams_per_unit: value,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", userId);
+    setSaving(false);
+
+    if (error) setMsg(error.message);
+    else setMsg("Guardado.");
+  }
+
+  if (!tryAppUserId()) {
+    return null;
+  }
+
+  if (loading) {
+    return <p className="text-sm text-zinc-500">A carregar regra de insulina…</p>;
+  }
+
+  return (
+    <form
+      onSubmit={(e) => void save(e)}
+      className="rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card"
+    >
+      <p className="text-sm font-medium text-zinc-900">
+        Regra HC / insulina rápida (opcional)
+      </p>
+      <p className="mt-1 text-xs text-zinc-500">
+        Quantos <strong>gramas de hidratos</strong> costumam ser cobertos por{" "}
+        <strong>1 UI</strong> de insulina rápida (valor acordado com o médico ou
+        educador). Ex.: se a regra for 1 UI por 12 g, coloca 12. O dashboard
+        compara com os HC registados <em>só como ajuda visual</em>.
+      </p>
+      <div className="mt-3 flex gap-2">
+        <input
+          inputMode="decimal"
+          placeholder="ex: 12"
+          value={grams}
+          onChange={(e) => setGrams(e.target.value)}
+          className="min-w-0 flex-1 rounded-xl border border-zinc-200 bg-canvas px-3 py-2 text-sm tabular-nums text-zinc-900 outline-none ring-accent/30 focus:ring-2"
+        />
+        <span className="flex items-center text-xs text-zinc-500">g / UI</span>
+      </div>
+      {msg && (
+        <p
+          className={`mt-2 text-xs ${msg === "Guardado." ? "text-accent" : "text-red-600"}`}
+        >
+          {msg}
+        </p>
+      )}
+      <button
+        type="submit"
+        disabled={saving}
+        className="mt-3 w-full rounded-xl bg-zinc-100 py-2.5 text-sm font-medium text-zinc-900 disabled:opacity-50"
+      >
+        {saving ? "A guardar…" : "Guardar regra"}
       </button>
     </form>
   );

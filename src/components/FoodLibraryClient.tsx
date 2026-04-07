@@ -294,14 +294,14 @@ export function FoodLibraryClient() {
             <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
               Biblioteca
             </p>
-            <h1 className="text-2xl font-semibold tracking-tight text-white">
+            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
               Alimentos
             </h1>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-zinc-600">
               Pesquisa, favoritos e registo a partir da tua lista.
             </p>
             {!online && (
-              <p className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-950/30 px-2.5 py-1 text-[11px] font-medium text-amber-200/90">
+              <p className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900">
                 <WifiOff className="h-3.5 w-3.5" aria-hidden />
                 Modo offline — dados em cache e fila de sincronização
               </p>
@@ -312,9 +312,9 @@ export function FoodLibraryClient() {
 
       <form
         onSubmit={(e) => void handleAddFood(e)}
-        className="rounded-2xl border border-white/5 bg-surface p-4 shadow-card"
+        className="rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card"
       >
-        <p className="mb-3 flex items-center gap-2 text-sm font-medium text-white">
+        <p className="mb-3 flex items-center gap-2 text-sm font-medium text-zinc-900">
           <Plus className="h-4 w-4 text-accent" aria-hidden />
           Novo alimento
         </p>
@@ -323,7 +323,7 @@ export function FoodLibraryClient() {
             placeholder="Nome (ex: Pão integral)"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            className="w-full rounded-xl border border-white/10 bg-canvas px-3 py-2.5 text-sm text-white outline-none ring-accent/30 focus:ring-2"
+            className="w-full rounded-xl border border-zinc-200 bg-canvas px-3 py-2.5 text-sm text-zinc-900 outline-none ring-accent/30 focus:ring-2"
           />
           <div className="flex flex-wrap items-end gap-3">
             <div className="min-w-0 flex-1">
@@ -335,28 +335,28 @@ export function FoodLibraryClient() {
                 placeholder="ex: 42"
                 value={newCarbs}
                 onChange={(e) => setNewCarbs(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-canvas px-3 py-2.5 text-sm tabular-nums text-white outline-none ring-accent/30 focus:ring-2"
+                className="w-full rounded-xl border border-zinc-200 bg-canvas px-3 py-2.5 text-sm tabular-nums text-zinc-900 outline-none ring-accent/30 focus:ring-2"
               />
             </div>
-            <label className="flex cursor-pointer items-center gap-2 pb-2.5 text-xs text-zinc-400">
+            <label className="flex cursor-pointer items-center gap-2 pb-2.5 text-xs text-zinc-600">
               <input
                 type="checkbox"
                 checked={newFavorite}
                 onChange={(e) => setNewFavorite(e.target.checked)}
-                className="rounded border-white/20 bg-canvas text-accent focus:ring-accent"
+                className="rounded border-zinc-300 bg-white text-accent focus:ring-accent"
               />
               Favorito
             </label>
           </div>
           {formError && (
-            <p className="text-xs text-red-400" role="alert">
+            <p className="text-xs text-red-600" role="alert">
               {formError}
             </p>
           )}
           <button
             type="submit"
             disabled={adding}
-            className="rounded-xl bg-white/[0.08] py-2.5 text-sm font-medium text-white transition hover:bg-white/[0.12] disabled:opacity-50"
+            className="rounded-xl bg-zinc-100 py-2.5 text-sm font-medium text-zinc-900 transition hover:bg-zinc-200 disabled:opacity-50"
           >
             {adding ? "A guardar…" : "Adicionar à biblioteca"}
           </button>
@@ -374,7 +374,7 @@ export function FoodLibraryClient() {
             placeholder="Pesquisar…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-white/10 bg-surface py-2.5 pl-10 pr-3 text-sm text-white outline-none ring-accent/30 focus:ring-2"
+            className="w-full rounded-xl border border-zinc-200 bg-surface py-2.5 pl-10 pr-3 text-sm text-zinc-900 outline-none ring-accent/30 focus:ring-2"
           />
         </div>
         <button
@@ -383,7 +383,7 @@ export function FoodLibraryClient() {
           className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition ${
             favoritesOnly
               ? "border-accent/40 bg-accent/15 text-accent"
-              : "border-white/10 bg-surface text-zinc-400"
+              : "border-zinc-200 bg-surface text-zinc-600"
           }`}
         >
           <Star
@@ -397,7 +397,7 @@ export function FoodLibraryClient() {
       {loading ? (
         <p className="py-8 text-center text-sm text-zinc-500">A carregar…</p>
       ) : filtered.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-white/10 py-10 text-center text-sm text-zinc-500">
+        <p className="rounded-2xl border border-dashed border-zinc-200 py-10 text-center text-sm text-zinc-500">
           {foods.length === 0
             ? "Ainda não tens alimentos. Adiciona o primeiro acima."
             : "Nada corresponde aos filtros."}
@@ -407,7 +407,7 @@ export function FoodLibraryClient() {
           {filtered.map((food) => (
             <li
               key={food.id}
-              className="flex items-center gap-2 rounded-2xl border border-white/5 bg-surface p-3 shadow-card"
+              className="flex items-center gap-2 rounded-2xl border border-zinc-200/90 bg-surface p-3 shadow-card"
             >
               <button
                 type="button"
@@ -418,7 +418,7 @@ export function FoodLibraryClient() {
                     ? "Sincroniza o alimento para alterar favorito"
                     : undefined
                 }
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/[0.05] text-zinc-400 transition hover:text-amber-400 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-50 text-zinc-600 transition hover:text-amber-400 disabled:cursor-not-allowed disabled:opacity-40"
                 aria-label={
                   food.is_favorite ? "Remover dos favoritos" : "Marcar favorito"
                 }
@@ -429,7 +429,7 @@ export function FoodLibraryClient() {
                 />
               </button>
               <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-white">
+                <p className="truncate font-medium text-zinc-900">
                   {food.name}
                   {food.id.startsWith("temp-") && (
                     <span className="ml-1.5 text-[10px] font-normal text-amber-400/90">
@@ -474,7 +474,7 @@ export function FoodLibraryClient() {
               role="dialog"
               aria-modal="true"
               aria-labelledby="food-log-title"
-              className="fixed bottom-0 left-0 right-0 z-[61] mx-auto max-w-md rounded-t-3xl border border-white/10 bg-surface p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl"
+              className="fixed bottom-0 left-0 right-0 z-[61] mx-auto max-w-md rounded-t-3xl border border-zinc-200 bg-surface p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl"
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
@@ -483,19 +483,19 @@ export function FoodLibraryClient() {
               <div className="mb-4 flex items-center justify-between">
                 <h2
                   id="food-log-title"
-                  className="pr-8 text-lg font-semibold text-white"
+                  className="pr-8 text-lg font-semibold text-zinc-900"
                 >
                   Registar alimento
                 </h2>
                 <button
                   type="button"
                   onClick={() => setLogFood(null)}
-                  className="rounded-full p-2 text-zinc-400 hover:bg-white/5 hover:text-white"
+                  className="rounded-full p-2 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
-              <p className="mb-3 text-sm text-zinc-400">{logFood.name}</p>
+              <p className="mb-3 text-sm text-zinc-600">{logFood.name}</p>
               <form
                 onSubmit={(e) => void submitLogFood(e)}
                 className="space-y-4"
@@ -512,7 +512,7 @@ export function FoodLibraryClient() {
                     inputMode="decimal"
                     value={logGrams}
                     onChange={(e) => setLogGrams(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-canvas px-4 py-3 text-lg font-semibold tabular-nums text-white outline-none ring-accent/40 focus:ring-2"
+                    className="w-full rounded-xl border border-zinc-200 bg-canvas px-4 py-3 text-lg font-semibold tabular-nums text-zinc-900 outline-none ring-accent/40 focus:ring-2"
                   />
                   <p className="mt-2 text-xs text-zinc-500">
                     ≈{" "}
@@ -526,7 +526,7 @@ export function FoodLibraryClient() {
                   </p>
                 </div>
                 {logError && (
-                  <p className="text-sm text-red-400" role="alert">
+                  <p className="text-sm text-red-600" role="alert">
                     {logError}
                   </p>
                 )}

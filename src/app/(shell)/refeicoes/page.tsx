@@ -29,10 +29,10 @@ export default function RefeicoesPage() {
         <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
           Nutrição
         </p>
-        <h1 className="text-2xl font-semibold tracking-tight text-white">
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
           Refeições
         </h1>
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-zinc-600">
           Geres hidratos com a biblioteca e refeições compostas no Supabase.
         </p>
       </header>
@@ -42,13 +42,13 @@ export default function RefeicoesPage() {
           <li key={href}>
             <Link
               href={href}
-              className="flex w-full items-center gap-4 rounded-2xl border border-white/5 bg-surface p-4 text-left shadow-card transition active:scale-[0.98] active:bg-surface-elevated"
+              className="flex w-full items-center gap-4 rounded-2xl border border-zinc-200/90 bg-surface p-4 text-left shadow-card transition active:scale-[0.98] active:bg-surface-elevated"
             >
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent">
                 <Icon className="h-5 w-5" aria-hidden />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="font-medium text-white">{title}</p>
+                <p className="font-medium text-zinc-900">{title}</p>
                 <p className="text-xs text-zinc-500">{description}</p>
               </div>
               <ChevronRight

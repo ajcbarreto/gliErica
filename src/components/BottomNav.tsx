@@ -22,7 +22,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.06] bg-surface/85 pb-[env(safe-area-inset-bottom,0px)] shadow-tab backdrop-blur-xl backdrop-saturate-150"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-zinc-200 bg-surface/85 pb-[env(safe-area-inset-bottom,0px)] shadow-tab backdrop-blur-xl backdrop-saturate-150"
       aria-label="Navegação principal"
     >
       <div className="mx-auto flex max-w-md items-stretch justify-around px-1 pt-1">
@@ -38,7 +38,7 @@ export function BottomNav() {
                 {active && (
                   <motion.span
                     layoutId="tab-pill"
-                    className="absolute inset-x-2 top-1 bottom-1 -z-10 rounded-2xl bg-white/[0.06]"
+                    className="absolute inset-x-2 top-1 bottom-1 -z-10 rounded-2xl bg-zinc-100"
                     transition={{
                       type: "spring",
                       stiffness: 380,

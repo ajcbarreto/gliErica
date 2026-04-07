@@ -1,4 +1,5 @@
 import { DashboardCarbSection } from "@/components/DashboardCarbSection";
+import { DashboardInsulinSection } from "@/components/DashboardInsulinSection";
 import { DashboardWaterSection } from "@/components/DashboardWaterSection";
 import { LibreDashboardSection } from "@/components/LibreDashboardSection";
 import { PostMealRiseWatcher } from "@/components/PostMealRiseWatcher";
@@ -10,10 +11,10 @@ export default function DashboardPage() {
         <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
           Hoje
         </p>
-        <h1 className="text-2xl font-semibold tracking-tight text-white">
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
           Olá
         </h1>
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-zinc-600">
           Resumo rápido do teu dia de saúde.
         </p>
       </header>
@@ -23,6 +24,8 @@ export default function DashboardPage() {
       <PostMealRiseWatcher />
 
       <DashboardCarbSection />
+
+      <DashboardInsulinSection />
 
       <DashboardWaterSection />
     </div>

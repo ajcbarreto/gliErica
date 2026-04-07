@@ -38,7 +38,7 @@ export function CarbRing({
           cy={size / 2}
           r={r}
           fill="none"
-          stroke="rgba(255,255,255,0.06)"
+          stroke="rgba(15, 23, 42, 0.08)"
           strokeWidth={stroke}
         />
         <circle
@@ -64,14 +64,14 @@ export function CarbRing({
         <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
           Hidratos
         </p>
-        <p className="mt-0.5 text-2xl font-semibold tabular-nums text-white">
+        <p className="mt-0.5 text-2xl font-semibold tabular-nums text-zinc-900">
           {formatNum(consumed)}
         </p>
         <p className="text-xs tabular-nums text-zinc-500">
           / {formatNum(goal)} g
         </p>
         {ratio > 1 && (
-          <p className="mt-1 text-[10px] font-medium text-amber-400">
+          <p className="mt-1 text-[10px] font-medium text-amber-700">
             Acima da meta
           </p>
         )}

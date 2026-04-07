@@ -99,29 +99,29 @@ export function QuickLogModal({ open, onClose, onLogged }: Props) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="quick-log-title"
-            className="fixed bottom-0 left-0 right-0 z-[61] mx-auto max-w-md rounded-t-3xl border border-white/10 bg-surface p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl"
+            className="fixed bottom-0 left-0 right-0 z-[61] mx-auto max-w-md rounded-t-3xl border border-zinc-200 bg-surface p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 28, stiffness: 320 }}
           >
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/10" />
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-zinc-200" />
             <div className="mb-4 flex items-center justify-between">
               <h2
                 id="quick-log-title"
-                className="text-lg font-semibold text-white"
+                className="text-lg font-semibold text-zinc-900"
               >
                 Registo rápido
               </h2>
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-full p-2 text-zinc-400 transition hover:bg-white/5 hover:text-white"
+                className="rounded-full p-2 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <p className="mb-4 text-sm text-zinc-400">
+            <p className="mb-4 text-sm text-zinc-600">
               Adiciona gramas de hidratos de carbono diretamente, sem escolher um
               alimento.
             </p>
@@ -140,11 +140,11 @@ export function QuickLogModal({ open, onClose, onLogged }: Props) {
                   placeholder="ex: 45"
                   value={grams}
                   onChange={(e) => setGrams(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-canvas px-4 py-3 text-lg font-semibold tabular-nums text-white outline-none ring-accent/40 placeholder:text-zinc-600 focus:ring-2"
+                  className="w-full rounded-xl border border-zinc-200 bg-canvas px-4 py-3 text-lg font-semibold tabular-nums text-zinc-900 outline-none ring-accent/40 placeholder:text-zinc-400 focus:ring-2"
                 />
               </div>
               {error && (
-                <p className="text-sm text-red-400" role="alert">
+                <p className="text-sm text-red-600" role="alert">
                   {error}
                 </p>
               )}

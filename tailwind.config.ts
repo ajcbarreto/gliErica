@@ -9,13 +9,13 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        canvas: "#09090b",
-        surface: "#18181b",
-        "surface-elevated": "#1f1f23",
+        canvas: "#eef2f7",
+        surface: "#ffffff",
+        "surface-elevated": "#f8fafc",
         accent: {
-          DEFAULT: "#10b981",
-          muted: "#059669",
-          foreground: "#022c22",
+          DEFAULT: "#059669",
+          muted: "#047857",
+          foreground: "#ffffff",
         },
       },
       fontFamily: {
@@ -31,8 +31,8 @@ const config: Config = {
         ],
       },
       boxShadow: {
-        tab: "0 -1px 0 0 rgba(255,255,255,0.06)",
-        card: "0 1px 0 0 rgba(255,255,255,0.04)",
+        tab: "0 -1px 0 0 rgba(15, 23, 42, 0.08)",
+        card: "0 1px 2px 0 rgba(15, 23, 42, 0.06)",
       },
     },
   },

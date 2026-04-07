@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "GliErica",
     startupImage: [
       {
@@ -59,7 +59,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#09090b",
+  themeColor: "#eef2f7",
 };
 
 export default function RootLayout({
@@ -68,7 +68,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt" className="bg-canvas">
+    <html lang="pt" className="bg-canvas text-zinc-800">
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
         <link

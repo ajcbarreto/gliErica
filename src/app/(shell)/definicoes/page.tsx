@@ -1,5 +1,9 @@
 import { Bell, Shield, User } from "lucide-react";
-import { CarbGoalPanel, WaterGoalPanel } from "@/components/SettingsPanels";
+import {
+  CarbGoalPanel,
+  InsulinRulePanel,
+  WaterGoalPanel,
+} from "@/components/SettingsPanels";
 
 const rows = [
   { label: "Perfil", desc: "Nome e dados pessoais", icon: User },
@@ -14,10 +18,10 @@ export default function DefinicoesPage() {
         <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
           Conta
         </p>
-        <h1 className="text-2xl font-semibold tracking-tight text-white">
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
           Definições
         </h1>
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-zinc-600">
           Personaliza a tua experiência na app.
         </p>
       </header>
@@ -26,19 +30,21 @@ export default function DefinicoesPage() {
 
       <WaterGoalPanel />
 
-      <div className="overflow-hidden rounded-2xl border border-white/5 bg-surface shadow-card">
-        <ul className="divide-y divide-white/[0.06]">
+      <InsulinRulePanel />
+
+      <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-surface shadow-card">
+        <ul className="divide-y divide-zinc-200">
           {rows.map(({ label, desc, icon: Icon }) => (
             <li key={label}>
               <button
                 type="button"
-                className="flex w-full items-center gap-4 px-4 py-3.5 text-left transition active:bg-white/[0.04]"
+                className="flex w-full items-center gap-4 px-4 py-3.5 text-left transition active:bg-zinc-50"
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-zinc-300">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600">
                   <Icon className="h-4 w-4" aria-hidden />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-white">{label}</p>
+                  <p className="font-medium text-zinc-900">{label}</p>
                   <p className="text-xs text-zinc-500">{desc}</p>
                 </div>
               </button>

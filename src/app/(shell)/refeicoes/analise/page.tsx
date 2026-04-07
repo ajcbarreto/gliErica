@@ -17,10 +17,10 @@ export default function RefeicoesAnalisePage() {
           <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
             CGM + hidratos
           </p>
-          <h1 className="text-2xl font-semibold tracking-tight text-white">
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
             Análise de impacto
           </h1>
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-zinc-600">
             Cruza registos favoritos com a curva Libre (1 h após a refeição).
           </p>
         </div>

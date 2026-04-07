@@ -6,8 +6,8 @@ import type {
   LibreTrend,
 } from "./types";
 
-/** Evita 429 da Abbott: várias chamadas no mesmo processo partilham o mesmo resultado. */
-const CACHE_TTL_MS = 150_000;
+/** Evita 429: resposta reutilizada no servidor (Abbott limita muito os pedidos). */
+const CACHE_TTL_MS = 240_000;
 
 function mapUomToUnit(uom: number): GlucoseDisplayUnit {
   return uom === 2 ? "mmol/L" : "mg/dL";
@@ -29,9 +29,31 @@ function toPoint(at: Date, value: number) {
   return { at: at.toISOString(), value };
 }
 
+/**
+ * Cabeçalho `version` que a Abbott valida. Valores antigos (ex. 4.12) devolvem 403.
+ * Opcional: LIBRELINKUP_CLIENT_VERSION no .env (ex. 4.17.0) se a Abbott subir o mínimo.
+ */
+const LLU_CLIENT_VERSION =
+  process.env.LIBRELINKUP_CLIENT_VERSION?.trim() || "4.17.0";
+
 function mapLibreFetchError(e: unknown): Error {
   if (typeof e === "object" && e !== null && "response" in e) {
-    const status = (e as { response?: { status?: number } }).response?.status;
+    const res = (e as {
+      response?: {
+        status?: number;
+        data?: { status?: number; data?: { minimumVersion?: string } };
+      };
+    }).response;
+    const status = res?.status;
+    if (status === 403) {
+      const minV = res?.data?.data?.minimumVersion;
+      const hint = minV
+        ? ` A API indica versão mínima ${minV}: define LIBRELINKUP_CLIENT_VERSION=${minV} no servidor e faz redeploy.`
+        : "";
+      return new Error(
+        `LibreLinkUp recusou o acesso (403).${hint} Abre a app LibreLinkUp no telemóvel, aceita termos ou atualizações se pedirem, e confirma que a conta de seguidor está ativa.`
+      );
+    }
     if (status === 429) {
       return new Error(
         "LibreLinkUp limitou pedidos (429). Aguarda 1–2 min. A app atualiza menos vezes para evitar isto."
@@ -64,6 +86,7 @@ async function fetchLibreGlucoseSnapshotUncached(): Promise<LibreGlucoseSnapshot
   const client = LibreLinkUpClient({
     username: login.trim(),
     password,
+    clientVersion: LLU_CLIENT_VERSION,
   });
 
   const raw = await client.readRaw();
@@ -126,8 +149,8 @@ export type GetLibreSnapshotOptions = {
 };
 
 /**
- * Glicemia via LibreLinkUp. Usa cache em memória (~2,5 min) e um único pedido em voo
- * para reduzir 429. Com 429, devolve dados em cache se existirem.
+ * Glicemia via LibreLinkUp. Cache em memória (~4 min) e um único pedido em voo.
+ * Com 429, devolve dados em cache se existirem (incl. após “Atualizar” se a API limitar).
  */
 export async function getLibreGlucoseSnapshot(
   options?: GetLibreSnapshotOptions

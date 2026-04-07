@@ -26,6 +26,8 @@ export type Profile = {
   id: string;
   daily_carb_goal: number;
   daily_water_goal_ml?: number;
+  /** Gramas de HC que 1 UI rápida cobre (regra médica individual). */
+  insulin_carb_grams_per_unit?: number | null;
 };
 
 export type WaterEntry = {
@@ -44,4 +46,16 @@ export type CarbEntry = {
   food_id: string | null;
   composite_meal_id: string | null;
   note: string | null;
+};
+
+export type InsulinKind = "rapid" | "basal";
+
+export type InsulinEntry = {
+  id: string;
+  user_id: string;
+  logged_on: string;
+  units: number;
+  kind: InsulinKind;
+  note: string | null;
+  created_at: string;
 };

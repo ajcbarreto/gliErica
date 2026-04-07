@@ -234,10 +234,10 @@ export function CompositeMealBuilder() {
             <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
               Composer
             </p>
-            <h1 className="text-2xl font-semibold tracking-tight text-white">
+            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
               Refeições compostas
             </h1>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-zinc-600">
               Vários alimentos numa refeição guardada (ex.: Pequeno Almoço VIP).
             </p>
           </div>
@@ -246,9 +246,9 @@ export function CompositeMealBuilder() {
 
       <form
         onSubmit={(e) => void saveComposite(e)}
-        className="rounded-2xl border border-white/5 bg-surface p-4 shadow-card"
+        className="rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card"
       >
-        <p className="mb-3 flex items-center gap-2 text-sm font-medium text-white">
+        <p className="mb-3 flex items-center gap-2 text-sm font-medium text-zinc-900">
           <Plus className="h-4 w-4 text-accent" aria-hidden />
           Criar nova
         </p>
@@ -256,7 +256,7 @@ export function CompositeMealBuilder() {
           placeholder="Nome da refeição"
           value={mealName}
           onChange={(e) => setMealName(e.target.value)}
-          className="mb-3 w-full rounded-xl border border-white/10 bg-canvas px-3 py-2.5 text-sm text-white outline-none ring-accent/30 focus:ring-2"
+          className="mb-3 w-full rounded-xl border border-zinc-200 bg-canvas px-3 py-2.5 text-sm text-zinc-900 outline-none ring-accent/30 focus:ring-2"
         />
         <p className="mb-2 text-xs text-zinc-500">
           Seleciona alimentos na biblioteca e ajusta as gramas. Mínimo 2.
@@ -278,16 +278,16 @@ export function CompositeMealBuilder() {
               return (
                 <li
                   key={f.id}
-                  className="flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.06] bg-canvas/80 px-3 py-2"
+                  className="flex flex-wrap items-center gap-2 rounded-xl border border-zinc-200 bg-canvas/80 px-3 py-2"
                 >
                   <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
                     <input
                       type="checkbox"
                       checked={on}
                       onChange={() => toggleFood(f.id)}
-                      className="rounded border-white/20 bg-canvas text-accent focus:ring-accent"
+                      className="rounded border-zinc-300 bg-white text-accent focus:ring-accent"
                     />
-                    <span className="truncate text-sm text-white">{f.name}</span>
+                    <span className="truncate text-sm text-zinc-900">{f.name}</span>
                   </label>
                   {on && (
                     <div className="flex items-center gap-1.5">
@@ -299,7 +299,7 @@ export function CompositeMealBuilder() {
                         onChange={(e) =>
                           setGrams(f.id, Math.max(1, Number(e.target.value) || 1))
                         }
-                        className="w-20 rounded-lg border border-white/10 bg-surface px-2 py-1 text-xs tabular-nums text-white"
+                        className="w-20 rounded-lg border border-zinc-200 bg-surface px-2 py-1 text-xs tabular-nums text-zinc-900"
                       />
                       <span className="text-[11px] text-zinc-500">g</span>
                     </div>
@@ -318,7 +318,7 @@ export function CompositeMealBuilder() {
         </div>
 
         {error && (
-          <p className="mb-3 text-xs text-red-400" role="alert">
+          <p className="mb-3 text-xs text-red-600" role="alert">
             {error}
           </p>
         )}
@@ -326,20 +326,20 @@ export function CompositeMealBuilder() {
         <button
           type="submit"
           disabled={saving || Object.keys(selected).length < 2}
-          className="w-full rounded-xl bg-white/[0.08] py-2.5 text-sm font-medium text-white transition hover:bg-white/[0.12] disabled:opacity-40"
+          className="w-full rounded-xl bg-zinc-100 py-2.5 text-sm font-medium text-zinc-900 transition hover:bg-zinc-200 disabled:opacity-40"
         >
           {saving ? "A guardar…" : "Guardar refeição composta"}
         </button>
       </form>
 
       <section>
-        <h2 className="mb-2 text-sm font-medium text-zinc-400">
+        <h2 className="mb-2 text-sm font-medium text-zinc-600">
           Guardadas ({meals.length})
         </h2>
         {loading ? (
           <p className="text-sm text-zinc-500">A carregar…</p>
         ) : meals.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-white/10 py-8 text-center text-sm text-zinc-500">
+          <p className="rounded-2xl border border-dashed border-zinc-200 py-8 text-center text-sm text-zinc-500">
             Ainda não tens refeições compostas.
           </p>
         ) : (
@@ -350,14 +350,14 @@ export function CompositeMealBuilder() {
               return (
                 <li
                   key={m.id}
-                  className="rounded-2xl border border-white/5 bg-surface p-4 shadow-card"
+                  className="rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="flex min-w-0 items-start gap-2">
                       <button
                         type="button"
                         onClick={() => void toggleCompositeFavorite(m)}
-                        className="mt-0.5 shrink-0 rounded-lg p-1.5 text-zinc-500 transition hover:bg-white/5 hover:text-amber-400"
+                        className="mt-0.5 shrink-0 rounded-lg p-1.5 text-zinc-500 transition hover:bg-zinc-100 hover:text-amber-400"
                         aria-label={
                           m.is_favorite
                             ? "Remover dos favoritos para análise"
@@ -370,7 +370,7 @@ export function CompositeMealBuilder() {
                         />
                       </button>
                       <div className="min-w-0">
-                        <p className="font-medium text-white">{m.name}</p>
+                        <p className="font-medium text-zinc-900">{m.name}</p>
                         <p className="text-xs text-zinc-500">
                           {itemList.length} ingrediente(s) · {total} g HC
                         </p>
@@ -384,7 +384,7 @@ export function CompositeMealBuilder() {
                       Registar hoje
                     </button>
                   </div>
-                  <ul className="mt-2 space-y-1 border-t border-white/[0.06] pt-2 text-xs text-zinc-500">
+                  <ul className="mt-2 space-y-1 border-t border-zinc-200 pt-2 text-xs text-zinc-500">
                     {itemList.map((i) => {
                       const f = foodsById[i.food_id];
                       return (

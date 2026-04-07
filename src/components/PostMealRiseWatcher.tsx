@@ -57,10 +57,13 @@ export function PostMealRiseWatcher() {
   }, []);
 
   useEffect(() => {
-    void run();
-    /** Alinhado com o dashboard: menos chamadas à API Libre (evitar 429). */
-    const id = setInterval(() => void run(), 180_000);
-    return () => clearInterval(id);
+    /** Primeiro pedido ~25 s depois do dashboard, para não ir dois à Abbott no mesmo segundo. */
+    const boot = setTimeout(() => void run(), 25_000);
+    const id = setInterval(() => void run(), 300_000);
+    return () => {
+      clearTimeout(boot);
+      clearInterval(id);
+    };
   }, [run]);
 
   async function requestNotifications() {
@@ -76,10 +79,10 @@ export function PostMealRiseWatcher() {
   return (
     <div
       role="alert"
-      className="rounded-2xl border border-amber-500/40 bg-amber-950/40 p-4 shadow-card"
+      className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-card"
     >
       <div className="flex gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-200">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-800">
           {banner.simulated ? (
             <BellOff className="h-5 w-5" aria-hidden />
           ) : (
@@ -87,19 +90,19 @@ export function PostMealRiseWatcher() {
           )}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-amber-100">
+          <p className="text-sm font-semibold text-amber-900">
             {banner.simulated
               ? "Alerta (simulação — notificações desativadas)"
               : "Alerta pós-refeição"}
           </p>
-          <p className="mt-1 text-xs leading-relaxed text-amber-100/85">
+          <p className="mt-1 text-xs leading-relaxed text-amber-900/90">
             {banner.message}
           </p>
           {banner.simulated && permission !== "granted" && (
             <button
               type="button"
               onClick={() => void requestNotifications()}
-              className="mt-3 rounded-lg bg-amber-500/25 px-3 py-2 text-xs font-medium text-amber-50 transition hover:bg-amber-500/35"
+              className="mt-3 rounded-lg bg-amber-200/80 px-3 py-2 text-xs font-medium text-amber-950 transition hover:bg-amber-300/90"
             >
               Ativar notificações do browser
             </button>
@@ -108,7 +111,7 @@ export function PostMealRiseWatcher() {
         <button
           type="button"
           onClick={() => setBanner(null)}
-          className="shrink-0 self-start rounded-lg px-2 py-1 text-xs text-amber-200/80 hover:bg-white/5"
+          className="shrink-0 self-start rounded-lg px-2 py-1 text-xs text-amber-800 hover:bg-amber-100"
         >
           Fechar
         </button>

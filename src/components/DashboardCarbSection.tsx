@@ -53,11 +53,11 @@ export function DashboardCarbSection() {
 
   return (
     <>
-      <div className="rounded-2xl border border-white/5 bg-surface p-5 shadow-card">
+      <div className="rounded-2xl border border-zinc-200/90 bg-surface p-5 shadow-card">
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between sm:gap-6">
           {loading ? (
             <div
-              className="flex h-[168px] w-[168px] items-center justify-center rounded-full bg-white/[0.03] text-sm text-zinc-500"
+              className="flex h-[168px] w-[168px] items-center justify-center rounded-full bg-zinc-50 text-sm text-zinc-500"
               aria-busy
             >
               A carregar…
@@ -66,7 +66,7 @@ export function DashboardCarbSection() {
             <CarbRing consumed={consumed} goal={goal} />
           )}
           <div className="flex w-full max-w-[220px] flex-col gap-3 sm:items-stretch">
-            <p className="text-center text-sm text-zinc-400 sm:text-left">
+            <p className="text-center text-sm text-zinc-600 sm:text-left">
               Hidratos consumidos hoje face à tua meta diária.
             </p>
             <button

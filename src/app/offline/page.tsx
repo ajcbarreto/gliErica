@@ -11,10 +11,10 @@ export default function OfflinePage() {
       <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
         Sem ligação
       </p>
-      <h1 className="mt-2 text-2xl font-semibold text-white">
+      <h1 className="mt-2 text-2xl font-semibold text-zinc-900">
         Estás offline
       </h1>
-      <p className="mt-3 max-w-sm text-sm text-zinc-400">
+      <p className="mt-3 max-w-sm text-sm text-zinc-600">
         Podes consultar a biblioteca de alimentos em cache e os registos ficam
         em fila até voltares a ter rede.
       </p>
