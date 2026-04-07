@@ -124,3 +124,123 @@ export function CarbGoalPanel() {
     </form>
   );
 }
+
+export function WaterGoalPanel() {
+  const supabase = createClient();
+  const [goalMl, setGoalMl] = useState("2000");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const userId = tryAppUserId();
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
+    const { data: existing } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (!existing) {
+      await supabase.from("profiles").insert({
+        id: userId,
+        daily_carb_goal: 200,
+        daily_water_goal_ml: 2000,
+      });
+    }
+
+    const { data } = await supabase
+      .from("profiles")
+      .select("daily_water_goal_ml")
+      .eq("id", userId)
+      .maybeSingle();
+
+    const g = data?.daily_water_goal_ml;
+    if (typeof g === "number" && g > 0) {
+      setGoalMl(String(Math.round(g)));
+    }
+    setLoading(false);
+  }, [supabase]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setMsg(null);
+    const v = parseFloat(goalMl.replace(",", "."));
+    if (Number.isNaN(v) || v <= 0) {
+      setMsg("Meta inválida (ml tem de ser > 0).");
+      return;
+    }
+
+    let userId: string;
+    try {
+      userId = getAppUserId();
+    } catch {
+      setMsg("UUID da app não configurado.");
+      return;
+    }
+
+    setSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        daily_water_goal_ml: Math.round(v),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", userId);
+    setSaving(false);
+
+    if (error) setMsg(error.message);
+    else setMsg("Guardado.");
+  }
+
+  if (!tryAppUserId()) {
+    return null;
+  }
+
+  if (loading) {
+    return <p className="text-sm text-zinc-500">A carregar meta de água…</p>;
+  }
+
+  return (
+    <form
+      onSubmit={(e) => void save(e)}
+      className="rounded-2xl border border-white/5 bg-surface p-4 shadow-card"
+    >
+      <p className="text-sm font-medium text-white">Meta diária de água</p>
+      <p className="mt-1 text-xs text-zinc-500">
+        Mililitros por dia (barra de hidratação no dashboard). Ex.: 2000 = 2 L.
+      </p>
+      <div className="mt-3 flex gap-2">
+        <input
+          inputMode="numeric"
+          value={goalMl}
+          onChange={(e) => setGoalMl(e.target.value)}
+          className="min-w-0 flex-1 rounded-xl border border-white/10 bg-canvas px-3 py-2 text-sm tabular-nums text-white outline-none ring-accent/30 focus:ring-2"
+        />
+        <span className="flex items-center text-xs text-zinc-500">ml / dia</span>
+      </div>
+      {msg && (
+        <p
+          className={`mt-2 text-xs ${msg === "Guardado." ? "text-accent" : "text-red-400"}`}
+        >
+          {msg}
+        </p>
+      )}
+      <button
+        type="submit"
+        disabled={saving}
+        className="mt-3 w-full rounded-xl bg-white/[0.08] py-2.5 text-sm font-medium text-white disabled:opacity-50"
+      >
+        {saving ? "A guardar…" : "Guardar meta de água"}
+      </button>
+    </form>
+  );
+}
