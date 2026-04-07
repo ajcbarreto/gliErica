@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CartesianGrid,
   Line,
@@ -31,6 +31,18 @@ const trendLabelPt: Record<LibreTrend, string> = {
   NotComputable: "Sem tendência",
 };
 
+type LibreGlucoseApiOk = {
+  snapshot: LibreGlucoseSnapshot;
+  stale?: boolean;
+  staleHint?: string;
+};
+
+function isLibreGlucoseApiOk(json: unknown): json is LibreGlucoseApiOk {
+  if (typeof json !== "object" || json === null) return false;
+  const s = (json as LibreGlucoseApiOk).snapshot;
+  return typeof s === "object" && s !== null && "current" in s && "chart24h" in s;
+}
+
 function cardStyles(range: LibreGlucoseSnapshot["rangeState"]) {
   switch (range) {
     case "hypo":
@@ -60,38 +72,93 @@ function cardStyles(range: LibreGlucoseSnapshot["rangeState"]) {
 export function LibreDashboardSection() {
   const [data, setData] = useState<LibreGlucoseSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [staleNote, setStaleNote] = useState<string | null>(null);
+  const dataRef = useRef<LibreGlucoseSnapshot | null>(null);
+  dataRef.current = data;
 
   const load = useCallback(async (useFresh = false) => {
-    setError(null);
-    setLoading(true);
+    const hadData = dataRef.current !== null;
+    if (useFresh && hadData) {
+      setStaleNote(null);
+    }
+    if (!hadData) {
+      setLoading(true);
+      setError(null);
+      setStaleNote(null);
+    } else {
+      setRefreshing(true);
+    }
     try {
       const url = useFresh ? "/api/libre/glucose?fresh=1" : "/api/libre/glucose";
       const res = await fetch(url, { cache: "no-store" });
-      const json = (await res.json()) as
-        | LibreGlucoseSnapshot
-        | { error?: string };
+      const json: unknown = await res.json();
+
       if (!res.ok) {
+        const msg =
+          typeof json === "object" &&
+          json !== null &&
+          "error" in json &&
+          typeof (json as { error: unknown }).error === "string"
+            ? (json as { error: string }).error
+            : `Erro ${res.status}`;
+        if (hadData) {
+          const limited =
+            msg.includes("429") ||
+            msg.includes("430") ||
+            /limitou pedidos/i.test(msg);
+          setStaleNote(
+            limited
+              ? "Último valor disponível. A API limitou novos pedidos (429/430)."
+              : `Último valor disponível. ${msg}`
+          );
+          return;
+        }
         setData(null);
-        setError(
-          "error" in json && json.error
-            ? json.error
-            : `Erro ${res.status}`
+        setStaleNote(null);
+        setError(msg);
+        return;
+      }
+
+      if (!isLibreGlucoseApiOk(json)) {
+        if (hadData) {
+          setStaleNote(
+            "Último valor disponível. Resposta inválida do servidor."
+          );
+          return;
+        }
+        setError("Resposta inválida do servidor.");
+        return;
+      }
+
+      setData(json.snapshot);
+      setError(null);
+      setStaleNote(
+        json.stale
+          ? (json.staleHint ??
+              "Último valor disponível. O servidor não conseguiu obter dados novos.")
+          : null
+      );
+    } catch {
+      if (hadData) {
+        setStaleNote(
+          "Último valor disponível. Falha de rede ao atualizar."
         );
         return;
       }
-      setData(json as LibreGlucoseSnapshot);
-    } catch {
       setError("Falha de rede ao obter dados LibreLinkUp.");
       setData(null);
+      setStaleNote(null);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
     void load(false);
-    /** 5 min: menos 429 (limite Abbott). Cache no servidor ~4 min. */
+    /** 5 min, alinhado com cache no servidor (~5 min): menos 429/430. */
     const id = setInterval(() => void load(false), 300_000);
     return () => clearInterval(id);
   }, [load]);
@@ -124,20 +191,29 @@ export function LibreDashboardSection() {
         <button
           type="button"
           onClick={() => void load(true)}
-          disabled={loading}
+          disabled={loading || refreshing}
           className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-xs font-medium text-zinc-600 transition hover:bg-zinc-100 disabled:opacity-50"
         >
           <RefreshCw
-            className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`}
+            className={`h-3.5 w-3.5 ${loading || refreshing ? "animate-spin" : ""}`}
             aria-hidden
           />
           Atualizar
         </button>
       </div>
 
+      {staleNote ? (
+        <p
+          role="status"
+          className="border-b border-amber-200/90 bg-amber-50/90 px-3 py-2 text-center text-[11px] leading-snug text-amber-950"
+        >
+          {staleNote}
+        </p>
+      ) : null}
+
       {loading && !data ? (
         <div className="h-36 animate-pulse rounded-2xl bg-zinc-100/80" />
-      ) : error ? (
+      ) : error && !data ? (
         <div className="rounded-2xl border border-zinc-200 bg-surface p-4 text-sm text-zinc-600">
           <p className="flex items-center gap-2 font-medium text-amber-800">
             <Activity className="h-4 w-4 shrink-0" aria-hidden />

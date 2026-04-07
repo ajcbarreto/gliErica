@@ -1,4 +1,5 @@
 import { Bell, Shield, User } from "lucide-react";
+import { AppLogo } from "@/components/AppLogo";
 import {
   CarbGoalPanel,
   InsulinRulePanel,
@@ -53,9 +54,12 @@ export default function DefinicoesPage() {
         </ul>
       </div>
 
-      <p className="text-center text-xs text-zinc-600">
-        GliErica · Supabase + design system escuro
-      </p>
+      <div className="flex flex-col items-center gap-2">
+        <AppLogo className="h-12 w-12" />
+        <p className="text-center text-xs text-zinc-600">
+          GliErica · Supabase + design system escuro
+        </p>
+      </div>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { getLibreGlucoseSnapshot } from "@/lib/libre/snapshot";
 import type { LibreGlucoseSnapshot } from "@/lib/libre/types";
 
 export type LibreGlucoseActionResult =
-  | { ok: true; data: LibreGlucoseSnapshot }
+  | { ok: true; data: LibreGlucoseSnapshot; stale?: boolean }
   | { ok: false; error: string };
 
 /**
@@ -12,8 +12,8 @@ export type LibreGlucoseActionResult =
  */
 export async function fetchLibreGlucoseAction(): Promise<LibreGlucoseActionResult> {
   try {
-    const data = await getLibreGlucoseSnapshot();
-    return { ok: true, data };
+    const { snapshot, stale } = await getLibreGlucoseSnapshot();
+    return stale ? { ok: true, data: snapshot, stale: true } : { ok: true, data: snapshot };
   } catch (e) {
     const error = e instanceof Error ? e.message : "Erro ao contactar LibreLinkUp.";
     return { ok: false, error };

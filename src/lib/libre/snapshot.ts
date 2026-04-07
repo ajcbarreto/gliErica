@@ -6,8 +6,8 @@ import type {
   LibreTrend,
 } from "./types";
 
-/** Evita 429: resposta reutilizada no servidor (Abbott limita muito os pedidos). */
-const CACHE_TTL_MS = 240_000;
+/** Evita 429/430: resposta reutilizada no servidor (Abbott limita muito os pedidos). */
+const CACHE_TTL_MS = 300_000;
 
 function mapUomToUnit(uom: number): GlucoseDisplayUnit {
   return uom === 2 ? "mmol/L" : "mg/dL";
@@ -54,14 +54,16 @@ function mapLibreFetchError(e: unknown): Error {
         `LibreLinkUp recusou o acesso (403).${hint} Abre a app LibreLinkUp no telemóvel, aceita termos ou atualizações se pedirem, e confirma que a conta de seguidor está ativa.`
       );
     }
-    if (status === 429) {
+    if (status === 429 || status === 430) {
       return new Error(
-        "LibreLinkUp limitou pedidos (429). Aguarda 1–2 min. A app atualiza menos vezes para evitar isto."
+        status === 430
+          ? "LibreLinkUp limitou pedidos (430). Aguarda 1–2 min."
+          : "LibreLinkUp limitou pedidos (429). Aguarda 1–2 min. A app atualiza menos vezes para evitar isto."
       );
     }
   }
   const msg = e instanceof Error ? e.message : String(e);
-  if (/429|too many requests/i.test(msg)) {
+  if (/429|430|too many requests/i.test(msg)) {
     return new Error(
       "LibreLinkUp limitou pedidos. Aguarda 1–2 min e tenta de novo."
     );
@@ -69,8 +71,23 @@ function mapLibreFetchError(e: unknown): Error {
   return e instanceof Error ? e : new Error(msg);
 }
 
-function isRateLimitedError(e: Error): boolean {
-  return e.message.includes("429") || e.message.includes("limitou pedidos");
+/** Erros em que não faz sentido mostrar dados antigos em cache (credenciais / conta). */
+function isAuthOrConfigError(e: Error): boolean {
+  const m = e.message;
+  return (
+    m.includes("403") ||
+    m.includes("recusou o acesso") ||
+    m.includes("Bad credentials") ||
+    m.includes("Define LIBRELINKUP") ||
+    m.includes("não configurados") ||
+    m.includes("Additional action required") ||
+    m.includes("ambiente do servidor")
+  );
+}
+
+/** Com cache disponível, servir dados antigos para falhas transitórias ou limite (429/430). */
+function shouldServeStaleFromError(e: Error): boolean {
+  return !isAuthOrConfigError(e);
 }
 
 async function fetchLibreGlucoseSnapshotUncached(): Promise<LibreGlucoseSnapshot> {
@@ -141,40 +158,56 @@ async function fetchLibreGlucoseSnapshotUncached(): Promise<LibreGlucoseSnapshot
 }
 
 let cache: { data: LibreGlucoseSnapshot; at: number } | null = null;
-let sharedPending: Promise<LibreGlucoseSnapshot> | null = null;
+let sharedPending: Promise<GetLibreGlucoseResult> | null = null;
 
 export type GetLibreSnapshotOptions = {
   /** Ignora cache (botão “Atualizar” no dashboard). */
   bypassCache?: boolean;
 };
 
+export type GetLibreGlucoseResult = {
+  snapshot: LibreGlucoseSnapshot;
+  /** Dados de um pedido anterior porque o pedido atual falhou ou foi limitado. */
+  stale?: boolean;
+  /** Para mensagens ao utilizador (ex. limite vs erro genérico). */
+  staleKind?: "rate_limit" | "upstream";
+};
+
 /**
- * Glicemia via LibreLinkUp. Cache em memória (~4 min) e um único pedido em voo.
- * Com 429, devolve dados em cache se existirem (incl. após “Atualizar” se a API limitar).
+ * Glicemia via LibreLinkUp. Cache em memória (~5 min) e um único pedido em voo.
+ * Com 429/430 ou outra falha não relacionada com credenciais, devolve cache se existir,
+ * com `stale: true`, para o cliente poder mostrar o último valor e um aviso.
  */
 export async function getLibreGlucoseSnapshot(
   options?: GetLibreSnapshotOptions
-): Promise<LibreGlucoseSnapshot> {
+): Promise<GetLibreGlucoseResult> {
   const bypass = options?.bypassCache === true;
   const now = Date.now();
 
   if (!bypass && cache !== null && now - cache.at < CACHE_TTL_MS) {
-    return cache.data;
+    return { snapshot: cache.data };
   }
 
   if (!bypass && sharedPending) {
     return sharedPending;
   }
 
-  const work = (async (): Promise<LibreGlucoseSnapshot> => {
+  const work = (async (): Promise<GetLibreGlucoseResult> => {
     try {
       const data = await fetchLibreGlucoseSnapshotUncached();
       cache = { data, at: Date.now() };
-      return data;
+      return { snapshot: data };
     } catch (e) {
       const err = mapLibreFetchError(e);
-      if (cache !== null && isRateLimitedError(err)) {
-        return cache.data;
+      if (cache !== null && shouldServeStaleFromError(err)) {
+        const rate =
+          err.message.includes("limitou pedidos") ||
+          /\b429\b|\b430\b/.test(err.message);
+        return {
+          snapshot: cache.data,
+          stale: true,
+          staleKind: rate ? "rate_limit" : "upstream",
+        };
       }
       throw err;
     }

@@ -18,7 +18,7 @@ export default function ShellLayout({
             className="flex items-center gap-2.5 rounded-xl py-1 pr-2 outline-none ring-offset-2 ring-offset-canvas transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-accent/50"
             aria-label="GliErica — ir para o dashboard"
           >
-            <AppLogo className="h-9 w-9 shrink-0" />
+            <AppLogo className="h-10 w-10 shrink-0" priority />
             <span className="text-lg font-semibold tracking-tight text-zinc-900">
               GliErica
             </span>

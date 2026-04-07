@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAppUserId } from "@/lib/app-user";
 import { getLibreGlucoseSnapshot } from "@/lib/libre/snapshot";
-import type { GlucoseDisplayUnit } from "@/lib/libre/types";
+import type { GlucoseDisplayUnit, LibreGlucoseSnapshot } from "@/lib/libre/types";
 import {
   RAPID_RISE_THRESHOLD_MG_DL_PER_MIN,
   slopeToMgDlPerMinute,
@@ -52,9 +52,9 @@ export async function getFavoriteMealImpactScores(): Promise<
     return { ok: false, error: msg };
   }
 
-  let snapshot;
+  let snapshot: LibreGlucoseSnapshot;
   try {
-    snapshot = await getLibreGlucoseSnapshot();
+    ({ snapshot } = await getLibreGlucoseSnapshot());
   } catch (e) {
     const msg = e instanceof Error ? e.message : "LibreLinkUp indisponível.";
     return { ok: false, error: msg };
@@ -179,9 +179,9 @@ export async function evaluatePostMealRapidRise(): Promise<PostMealRisePayload> 
     return none(msg);
   }
 
-  let snapshot;
+  let snapshot: LibreGlucoseSnapshot;
   try {
-    snapshot = await getLibreGlucoseSnapshot();
+    ({ snapshot } = await getLibreGlucoseSnapshot());
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Libre indisponível.";
     return none(msg);

@@ -1,25 +1,30 @@
+import Image from "next/image";
+
+export const BRAND_LOGO_SRC = "/brand/logo.png";
+
 type AppLogoProps = {
   className?: string;
-  /** Quando true, o SVG recebe role="img" e um título para leitores de ecrã. */
-  labelled?: boolean;
+  /** Usar só no topo da shell (LCP). */
+  priority?: boolean;
 };
 
 /**
- * Marca visual alinhada aos ícones PWA (scripts/generate-pwa-assets.mjs).
+ * Logo da marca (ficheiro em `public/brand/logo.png`).
+ * Passa `className` com dimensões (ex.: `h-9 w-9`) — o marcador é `position: relative` para o `fill` do Next/Image.
  */
-export function AppLogo({ className, labelled }: AppLogoProps) {
+export function AppLogo({ className, priority = false }: AppLogoProps) {
   return (
-    <svg
-      className={className}
-      viewBox="0 0 32 32"
-      width={32}
-      height={32}
-      role={labelled ? "img" : undefined}
-      aria-hidden={labelled ? undefined : true}
+    <span
+      className={`relative inline-block shrink-0 overflow-hidden rounded-xl ${className ?? ""}`}
     >
-      {labelled ? <title>GliErica</title> : null}
-      <rect width="32" height="32" fill="#09090b" rx="7" />
-      <circle cx="16" cy="16" r="9" fill="var(--accent, #059669)" />
-    </svg>
+      <Image
+        src={BRAND_LOGO_SRC}
+        alt=""
+        fill
+        className="object-contain"
+        sizes="96px"
+        priority={priority}
+      />
+    </span>
   );
 }

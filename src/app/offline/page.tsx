@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AppLogo } from "@/components/AppLogo";
 
 export const metadata = {
   title: "Offline — GliErica",
@@ -8,6 +9,7 @@ export const metadata = {
 export default function OfflinePage() {
   return (
     <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-canvas px-6 text-center">
+      <AppLogo className="mb-6 h-28 w-28" />
       <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
         Sem ligação
       </p>
