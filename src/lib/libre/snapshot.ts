@@ -6,8 +6,10 @@ import type {
   LibreTrend,
 } from "./types";
 
+/** Evita 429 da Abbott: várias chamadas no mesmo processo partilham o mesmo resultado. */
+const CACHE_TTL_MS = 150_000;
+
 function mapUomToUnit(uom: number): GlucoseDisplayUnit {
-  // Abbott: 1 ≈ mg/dL, 2 ≈ mmol/L (valores da API LibreLink)
   return uom === 2 ? "mmol/L" : "mg/dL";
 }
 
@@ -27,11 +29,29 @@ function toPoint(at: Date, value: number) {
   return { at: at.toISOString(), value };
 }
 
-/**
- * Obtém glicemia atual, tendência, histórico ~3 h e série ~24 h via LibreLinkUp.
- * Credenciais só em servidor (env).
- */
-export async function getLibreGlucoseSnapshot(): Promise<LibreGlucoseSnapshot> {
+function mapLibreFetchError(e: unknown): Error {
+  if (typeof e === "object" && e !== null && "response" in e) {
+    const status = (e as { response?: { status?: number } }).response?.status;
+    if (status === 429) {
+      return new Error(
+        "LibreLinkUp limitou pedidos (429). Aguarda 1–2 min. A app atualiza menos vezes para evitar isto."
+      );
+    }
+  }
+  const msg = e instanceof Error ? e.message : String(e);
+  if (/429|too many requests/i.test(msg)) {
+    return new Error(
+      "LibreLinkUp limitou pedidos. Aguarda 1–2 min e tenta de novo."
+    );
+  }
+  return e instanceof Error ? e : new Error(msg);
+}
+
+function isRateLimitedError(e: Error): boolean {
+  return e.message.includes("429") || e.message.includes("limitou pedidos");
+}
+
+async function fetchLibreGlucoseSnapshotUncached(): Promise<LibreGlucoseSnapshot> {
   const login = process.env.LIBRELINKUP_LOGIN;
   const password = process.env.LIBRELINKUP_PASSWORD;
 
@@ -95,4 +115,54 @@ export async function getLibreGlucoseSnapshot(): Promise<LibreGlucoseSnapshot> {
     chart24h: in24.map((p) => toPoint(p.date, p.value)),
     rangeState,
   };
+}
+
+let cache: { data: LibreGlucoseSnapshot; at: number } | null = null;
+let sharedPending: Promise<LibreGlucoseSnapshot> | null = null;
+
+export type GetLibreSnapshotOptions = {
+  /** Ignora cache (botão “Atualizar” no dashboard). */
+  bypassCache?: boolean;
+};
+
+/**
+ * Glicemia via LibreLinkUp. Usa cache em memória (~2,5 min) e um único pedido em voo
+ * para reduzir 429. Com 429, devolve dados em cache se existirem.
+ */
+export async function getLibreGlucoseSnapshot(
+  options?: GetLibreSnapshotOptions
+): Promise<LibreGlucoseSnapshot> {
+  const bypass = options?.bypassCache === true;
+  const now = Date.now();
+
+  if (!bypass && cache !== null && now - cache.at < CACHE_TTL_MS) {
+    return cache.data;
+  }
+
+  if (!bypass && sharedPending) {
+    return sharedPending;
+  }
+
+  const work = (async (): Promise<LibreGlucoseSnapshot> => {
+    try {
+      const data = await fetchLibreGlucoseSnapshotUncached();
+      cache = { data, at: Date.now() };
+      return data;
+    } catch (e) {
+      const err = mapLibreFetchError(e);
+      if (cache !== null && isRateLimitedError(err)) {
+        return cache.data;
+      }
+      throw err;
+    }
+  })();
+
+  if (!bypass) {
+    sharedPending = work.finally(() => {
+      sharedPending = null;
+    });
+    return sharedPending;
+  }
+
+  return work;
 }

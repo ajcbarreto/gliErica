@@ -62,11 +62,12 @@ export function LibreDashboardSection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (useFresh = false) => {
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch("/api/libre/glucose", { cache: "no-store" });
+      const url = useFresh ? "/api/libre/glucose?fresh=1" : "/api/libre/glucose";
+      const res = await fetch(url, { cache: "no-store" });
       const json = (await res.json()) as
         | LibreGlucoseSnapshot
         | { error?: string };
@@ -89,8 +90,9 @@ export function LibreDashboardSection() {
   }, []);
 
   useEffect(() => {
-    void load();
-    const id = setInterval(() => void load(), 60_000);
+    void load(false);
+    /** ~3 min: a API Abbott limita pedidos (429) se atualizar demasiado. */
+    const id = setInterval(() => void load(false), 180_000);
     return () => clearInterval(id);
   }, [load]);
 
@@ -121,7 +123,7 @@ export function LibreDashboardSection() {
         </h2>
         <button
           type="button"
-          onClick={() => void load()}
+          onClick={() => void load(true)}
           disabled={loading}
           className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs font-medium text-zinc-300 transition hover:bg-white/[0.08] disabled:opacity-50"
         >

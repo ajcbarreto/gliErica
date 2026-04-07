@@ -58,7 +58,8 @@ export function PostMealRiseWatcher() {
 
   useEffect(() => {
     void run();
-    const id = setInterval(() => void run(), 90_000);
+    /** Alinhado com o dashboard: menos chamadas à API Libre (evitar 429). */
+    const id = setInterval(() => void run(), 180_000);
     return () => clearInterval(id);
   }, [run]);
 
