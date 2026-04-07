@@ -14,20 +14,12 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
+// Ícones do separador: src/app/icon.png, apple-icon.png e public/favicon.ico (npm run pwa:assets)
 export const metadata: Metadata = {
-  title: "GliErica — Saúde",
+  title: "GliErica",
   description: "Acompanhe o seu bem-estar numa experiência pensada para iPhone.",
   applicationName: "GliErica",
   manifest: "/manifest.json",
-  icons: {
-    icon: [
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
-    ],
-    apple: [
-      { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
-    ],
-  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -70,6 +62,7 @@ export default function RootLayout({
   return (
     <html lang="pt" className="bg-canvas text-zinc-800">
       <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
         <meta name="mobile-web-app-capable" content="yes" />
         <link
           rel="apple-touch-startup-image"

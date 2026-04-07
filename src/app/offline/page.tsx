@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AppLogo } from "@/components/AppLogo";
 
 export const metadata = {
-  title: "Offline — GliErica",
+  title: "GliErica",
   robots: { index: false, follow: false },
 };
 

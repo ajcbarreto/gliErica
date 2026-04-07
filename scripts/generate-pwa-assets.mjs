@@ -2,7 +2,7 @@
  * Gera ícones PWA e imagens Apple (splash) a partir de public/brand/logo.png (sharp).
  * Executar: npm run pwa:assets
  */
-import { existsSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import sharp from "sharp";
@@ -13,6 +13,7 @@ const publicDir = join(root, "public");
 const logoPath = join(publicDir, "brand", "logo.png");
 const iconsDir = join(publicDir, "icons");
 const splashDir = join(publicDir, "splash");
+const appDir = join(root, "src", "app");
 
 if (!existsSync(logoPath)) {
   console.error(
@@ -23,6 +24,7 @@ if (!existsSync(logoPath)) {
 
 mkdirSync(iconsDir, { recursive: true });
 mkdirSync(splashDir, { recursive: true });
+mkdirSync(appDir, { recursive: true });
 
 /** Alinhado a --canvas em globals.css */
 const ICON_BG = { r: 238, g: 242, b: 247, alpha: 1 };
@@ -78,6 +80,39 @@ async function splashScreen(name, w, h) {
     .toFile(join(splashDir, `${name}.png`));
 }
 
+/** Browsers pedem /favicon.ico por defeito; sem isto o separador mostra ícone genérico. */
+async function writeFaviconIco() {
+  const { default: toIco } = await import("to-ico");
+  const sizes = [16, 32, 48];
+  const bufs = [];
+  for (const s of sizes) {
+    const inner = Math.max(1, Math.round(s * 0.88));
+    const logoBuf = await sharp(logoPath)
+      .resize(inner, inner, { fit: "inside" })
+      .toBuffer();
+    const pngBuf = await sharp({
+      create: {
+        width: s,
+        height: s,
+        channels: 4,
+        background: ICON_BG,
+      },
+    })
+      .composite([{ input: logoBuf, gravity: "center" }])
+      .png()
+      .toBuffer();
+    bufs.push(pngBuf);
+  }
+  const ico = await toIco(bufs);
+  writeFileSync(join(publicDir, "favicon.ico"), ico);
+}
+
+await writeFaviconIco();
+
+/** Convenção App Router: Next injeta <link rel="icon"> a partir destes ficheiros. */
+await iconSquare(512, join(appDir, "icon.png"), 0.88);
+await iconSquare(180, join(appDir, "apple-icon.png"), 0.88);
+
 await iconSquare(512, join(iconsDir, "icon-512.png"), 0.88);
 await iconSquare(192, join(iconsDir, "icon-192.png"), 0.88);
 await iconSquare(180, join(iconsDir, "apple-touch-icon.png"), 0.88);
@@ -93,4 +128,6 @@ for (const { name, w, h } of splashes) {
   await splashScreen(name, w, h);
 }
 
-console.log("PWA assets gerados a partir de public/brand/logo.png");
+console.log(
+  "PWA + favicon (public/favicon.ico, src/app/icon.png) gerados a partir de public/brand/logo.png"
+);
