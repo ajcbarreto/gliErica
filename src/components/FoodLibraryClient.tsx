@@ -16,6 +16,7 @@ import {
 } from "@/lib/offline/queue-types";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import type { Food } from "@/types/database";
+import { OpenFoodFactsPanel } from "@/components/OpenFoodFactsPanel";
 import {
   ArrowLeft,
   Plus,
@@ -309,6 +310,19 @@ export function FoodLibraryClient() {
           </div>
         </div>
       </header>
+
+      <OpenFoodFactsPanel
+        online={online}
+        onApplyProduct={(name, carbs) => {
+          setNewName(name);
+          setNewCarbs(carbs !== null ? String(carbs) : "");
+          setFormError(
+            carbs === null
+              ? "Sem hidratos por 100 g na Open Food Facts — confere o rótulo e preenche o HC manualmente."
+              : null
+          );
+        }}
+      />
 
       <form
         onSubmit={(e) => void handleAddFood(e)}
