@@ -34,3 +34,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# next-pwa (gerados em `next build`; podes versionar se quiseres deploy sem build)
+/public/sw.js
+/public/sw.js.map
+/public/swe-worker-*.js
+/public/workbox-*.js
+/public/workbox-*.js.map
+/public/fallback-*.js

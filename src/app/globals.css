@@ -3,25 +3,32 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --canvas: #09090b;
+  --surface: #18181b;
+  --accent: #10b981;
+  --accent-muted: #059669;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  @apply bg-canvas text-zinc-100 antialiased;
+  min-height: 100dvh;
+  min-height: 100vh;
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .safe-pb {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .safe-pt {
+    padding-top: env(safe-area-inset-top, 0px);
   }
 }
