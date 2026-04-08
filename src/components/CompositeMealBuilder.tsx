@@ -8,6 +8,7 @@ import { getLocalDateKey } from "@/lib/date";
 import { carbsFromFoodGrams, roundCarbs } from "@/lib/carb-math";
 import type { CompositeMeal, Food } from "@/types/database";
 import { ArrowLeft, Layers, Plus, Star } from "lucide-react";
+import { usePullToRefresh } from "@/lib/use-pull-refresh";
 
 type ItemDraft = { food_id: string; grams: number };
 
@@ -77,6 +78,8 @@ export function CompositeMealBuilder() {
 
     setLoading(false);
   }, [supabase]);
+
+  usePullToRefresh(loadAll);
 
   useEffect(() => {
     void loadAll();

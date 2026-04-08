@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { usePathname } from "next/navigation";
+import { PullToRefresh } from "@/components/PullToRefresh";
 
 export default function ShellTemplate({
   children,
@@ -21,7 +22,7 @@ export default function ShellTemplate({
       }}
       className="flex min-h-0 flex-1 flex-col"
     >
-      {children}
+      <PullToRefresh>{children}</PullToRefresh>
     </motion.div>
   );
 }

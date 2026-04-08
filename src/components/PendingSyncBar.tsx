@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { queueLength } from "@/lib/offline/queue-types";
 import { flushPendingSyncQueue } from "@/lib/offline/sync-queue";
+import { usePullToRefresh } from "@/lib/use-pull-refresh";
 import { CloudOff, RefreshCw } from "lucide-react";
 
 export function PendingSyncBar() {
@@ -10,6 +11,8 @@ export function PendingSyncBar() {
   const [syncing, setSyncing] = useState(false);
 
   const refresh = useCallback(() => setN(queueLength()), []);
+
+  usePullToRefresh(refresh);
 
   useEffect(() => {
     refresh();

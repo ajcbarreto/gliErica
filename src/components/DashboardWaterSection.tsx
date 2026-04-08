@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getAppUserId, tryAppUserId } from "@/lib/app-user";
 import { getLocalDateKey } from "@/lib/date";
 import { formatLitersFromMl } from "@/lib/water-display";
+import { usePullToRefresh } from "@/lib/use-pull-refresh";
 import { Droplets, Undo2 } from "lucide-react";
 
 const QUICK_ML = [200, 250, 500] as const;
@@ -52,6 +53,8 @@ export function DashboardWaterSection() {
     setLastEntryId(list[0]?.id ?? null);
     setLoading(false);
   }, [supabase]);
+
+  usePullToRefresh(refresh);
 
   useEffect(() => {
     void refresh();

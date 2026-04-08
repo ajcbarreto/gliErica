@@ -1,4 +1,5 @@
 import { DashboardCarbSection } from "@/components/DashboardCarbSection";
+import { DashboardContextSection } from "@/components/DashboardContextSection";
 import { DashboardInsulinSection } from "@/components/DashboardInsulinSection";
 import { DashboardWaterSection } from "@/components/DashboardWaterSection";
 import { LibreDashboardSection } from "@/components/LibreDashboardSection";
@@ -22,6 +23,8 @@ export default function DashboardPage() {
       <LibreDashboardSection />
 
       <PostMealRiseWatcher />
+
+      <DashboardContextSection />
 
       <DashboardCarbSection />
 

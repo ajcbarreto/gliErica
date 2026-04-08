@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getAppUserId, tryAppUserId } from "@/lib/app-user";
 import { getLocalDateKey } from "@/lib/date";
 import { MEAL_SLOTS, mealSlotLabelPt, type MealSlot } from "@/lib/meal-slots";
+import { usePullToRefresh } from "@/lib/use-pull-refresh";
 import type { MealLog } from "@/types/database";
 import { CalendarDays, Trash2 } from "lucide-react";
 
@@ -61,6 +62,8 @@ export function MealJournalClient() {
     }
     setLogs((data ?? []) as MealLog[]);
   }, [supabase]);
+
+  usePullToRefresh(load);
 
   useEffect(() => {
     void load();

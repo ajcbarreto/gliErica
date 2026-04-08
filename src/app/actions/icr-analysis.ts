@@ -79,7 +79,7 @@ export async function getInsulinCarbAnalysis(
       return {
         ok: false,
         error:
-          "Tabela insulin_entries em falta. Corre a migração 005_insulin no Supabase.",
+          "Tabela insulin_entries inacessível. Corre as migrações 005_insulin e 008_clinical_context no Supabase.",
       };
     }
     return { ok: false, error: iErr.message };

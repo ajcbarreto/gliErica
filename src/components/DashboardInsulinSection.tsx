@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getAppUserId, tryAppUserId } from "@/lib/app-user";
 import { getLocalDateKey } from "@/lib/date";
+import { usePullToRefresh } from "@/lib/use-pull-refresh";
 import type { InsulinKind } from "@/types/database";
 import { Syringe, Undo2 } from "lucide-react";
 
@@ -17,7 +18,9 @@ function formatTime(iso: string) {
 }
 
 function kindLabelPt(k: InsulinKind) {
-  return k === "rapid" ? "Rápida" : "Basal";
+  if (k === "rapid") return "Rápida";
+  if (k === "correction") return "Correção";
+  return "Basal";
 }
 
 /** Sugestão orientativa: UI rápida ≈ HC do dia / gramas por UI. */
@@ -45,7 +48,9 @@ function comparisonHint(
 export function DashboardInsulinSection() {
   const supabase = createClient();
   const [kind, setKind] = useState<InsulinKind>("rapid");
-  const [rapidSum, setRapidSum] = useState(0);
+  /** Bolus de refeição (exclui correções — usado na comparação com HC). */
+  const [mealRapidSum, setMealRapidSum] = useState(0);
+  const [correctionSum, setCorrectionSum] = useState(0);
   const [basalSum, setBasalSum] = useState(0);
   const [carbsDay, setCarbsDay] = useState(0);
   const [gramsPerUnit, setGramsPerUnit] = useState<number | null>(null);
@@ -101,14 +106,17 @@ export function DashboardInsulinSection() {
       created_at: string;
     }[];
 
-    let r = 0;
+    let mealRapid = 0;
+    let correction = 0;
     let b = 0;
     for (const row of list) {
       const u = Number(row.units);
       if (row.kind === "basal") b += u;
-      else r += u;
+      else if (row.kind === "correction") correction += u;
+      else mealRapid += u;
     }
-    setRapidSum(Math.round(r * 10) / 10);
+    setMealRapidSum(Math.round(mealRapid * 10) / 10);
+    setCorrectionSum(Math.round(correction * 10) / 10);
     setBasalSum(Math.round(b * 10) / 10);
     setEntries(list.slice(0, 8));
     setLastEntryId(list[0]?.id ?? null);
@@ -121,6 +129,8 @@ export function DashboardInsulinSection() {
 
     setLoading(false);
   }, [supabase]);
+
+  usePullToRefresh(refresh);
 
   useEffect(() => {
     void refresh();
@@ -155,7 +165,7 @@ export function DashboardInsulinSection() {
     if (error) {
       setMsg(
         error.message.includes("insulin_entries")
-          ? "Corre a migração SQL 005_insulin no Supabase."
+          ? "Corre as migrações SQL 005_insulin e 008_clinical_context no Supabase."
           : error.message
       );
       return;
@@ -197,7 +207,7 @@ export function DashboardInsulinSection() {
       : null;
   const hint =
     suggested && suggested > 0
-      ? comparisonHint(rapidSum, suggested, carbsDay)
+      ? comparisonHint(mealRapidSum, suggested, carbsDay)
       : null;
 
   return (
@@ -214,9 +224,14 @@ export function DashboardInsulinSection() {
             <>
               <p className="mt-1 text-sm text-zinc-700">
                 <span className="font-semibold tabular-nums text-zinc-900">
-                  {rapidSum} UI
+                  {mealRapidSum} UI
                 </span>{" "}
-                rápida
+                rápida (refeição)
+                <span className="mx-1.5 text-zinc-400">·</span>
+                <span className="font-semibold tabular-nums text-zinc-900">
+                  {correctionSum} UI
+                </span>{" "}
+                correção
                 <span className="mx-1.5 text-zinc-400">·</span>
                 <span className="font-semibold tabular-nums text-zinc-900">
                   {basalSum} UI
@@ -257,7 +272,8 @@ export function DashboardInsulinSection() {
             </span>
             {(
               [
-                ["rapid", "Rápida (refeição / correção)"],
+                ["rapid", "Rápida (refeição)"],
+                ["correction", "Correção"],
                 ["basal", "Basal"],
               ] as const
             ).map(([k, label]) => (

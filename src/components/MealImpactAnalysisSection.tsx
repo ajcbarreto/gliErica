@@ -7,6 +7,7 @@ import {
 } from "@/app/actions/meal-analysis";
 import type { GlucoseDisplayUnit } from "@/lib/libre/types";
 import { BarChart3, RefreshCw } from "lucide-react";
+import { usePullToRefresh } from "@/lib/use-pull-refresh";
 
 function formatDeltaSentence(row: FavoriteImpactRow): string {
   const u = row.unit === "mmol/L" ? "mmol/L" : "mg/dL";
@@ -35,6 +36,8 @@ export function MealImpactAnalysisSection() {
     }
     setLoading(false);
   }, []);
+
+  usePullToRefresh(load);
 
   useEffect(() => {
     void load();

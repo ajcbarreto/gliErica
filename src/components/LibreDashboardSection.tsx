@@ -11,6 +11,7 @@ import {
   YAxis,
 } from "recharts";
 import type { LibreGlucoseSnapshot, LibreTrend } from "@/lib/libre/types";
+import { usePullToRefresh } from "@/lib/use-pull-refresh";
 import { Activity, RefreshCw } from "lucide-react";
 
 const trendSymbol: Record<LibreTrend, string> = {
@@ -155,6 +156,9 @@ export function LibreDashboardSection() {
       setRefreshing(false);
     }
   }, []);
+
+  const onPullRefresh = useCallback(() => void load(true), [load]);
+  usePullToRefresh(onPullRefresh);
 
   useEffect(() => {
     void load(false);

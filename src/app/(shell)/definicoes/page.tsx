@@ -2,6 +2,7 @@ import { Bell, Shield, User } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
 import {
   CarbGoalPanel,
+  CorrectionSensitivityPanel,
   InsulinRulePanel,
   WaterGoalPanel,
 } from "@/components/SettingsPanels";
@@ -32,6 +33,8 @@ export default function DefinicoesPage() {
       <WaterGoalPanel />
 
       <InsulinRulePanel />
+
+      <CorrectionSensitivityPanel />
 
       <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-surface shadow-card">
         <ul className="divide-y divide-zinc-200">

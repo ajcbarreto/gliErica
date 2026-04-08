@@ -39,6 +39,12 @@ export type Profile = {
   daily_water_goal_ml?: number;
   /** Gramas de HC que 1 UI rápida cobre (regra médica individual). */
   insulin_carb_grams_per_unit?: number | null;
+  /**
+   * Fator de sensibilidade: mg/dL que 1 UI de rápida baixa (valor clínico individual).
+   */
+  isf_drop_mg_dl_per_unit?: number | null;
+  /** Alvo de glicemia para correções, mg/dL. */
+  correction_target_mg_dl?: number | null;
 };
 
 export type WaterEntry = {
@@ -60,7 +66,7 @@ export type CarbEntry = {
   meal_log_id?: string | null;
 };
 
-export type InsulinKind = "rapid" | "basal";
+export type InsulinKind = "rapid" | "basal" | "correction";
 
 export type InsulinEntry = {
   id: string;
@@ -88,6 +94,59 @@ export type MealLog = {
   meal_slot: MealSlotDb;
   grams_carbs: number;
   rapid_insulin_units: number | null;
+  note: string | null;
+  created_at: string;
+};
+
+export type GlucoseManualUnit = "mg_dl" | "mmol_l";
+
+export type GlucoseManualSource = "fingerstick" | "lab" | "other";
+
+export type GlucoseManualEntry = {
+  id: string;
+  user_id: string;
+  logged_on: string;
+  measured_at: string;
+  value: number;
+  unit: GlucoseManualUnit;
+  source: GlucoseManualSource;
+  note: string | null;
+  created_at: string;
+};
+
+export type GlycemicEventKind = "hypo" | "hyper";
+
+export type GlycemicEvent = {
+  id: string;
+  user_id: string;
+  logged_on: string;
+  occurred_at: string;
+  kind: GlycemicEventKind;
+  glucose_value: number | null;
+  glucose_unit: GlucoseManualUnit | null;
+  carbs_treatment_g: number | null;
+  note: string | null;
+  created_at: string;
+};
+
+export type ActivityType =
+  | "walk"
+  | "run"
+  | "cycle"
+  | "sport"
+  | "workout"
+  | "other";
+
+export type ActivityIntensity = "light" | "moderate" | "vigorous";
+
+export type ActivityEntry = {
+  id: string;
+  user_id: string;
+  logged_on: string;
+  started_at: string;
+  duration_minutes: number;
+  activity_type: ActivityType;
+  intensity: ActivityIntensity | null;
   note: string | null;
   created_at: string;
 };

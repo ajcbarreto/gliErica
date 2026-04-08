@@ -15,6 +15,7 @@ import {
   optimisticFood,
 } from "@/lib/offline/queue-types";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { usePullToRefresh } from "@/lib/use-pull-refresh";
 import type { Food } from "@/types/database";
 import { OpenFoodFactsPanel } from "@/components/OpenFoodFactsPanel";
 import { TcaFoodsPanel } from "@/components/TcaFoodsPanel";
@@ -78,6 +79,8 @@ export function FoodLibraryClient() {
     }
     setLoading(false);
   }, [supabase]);
+
+  usePullToRefresh(loadFoods);
 
   useEffect(() => {
     void loadFoods();

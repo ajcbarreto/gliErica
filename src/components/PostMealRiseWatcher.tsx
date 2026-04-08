@@ -6,6 +6,7 @@ import {
   type PostMealRisePayload,
 } from "@/app/actions/meal-analysis";
 import { Bell, BellOff } from "lucide-react";
+import { usePullToRefresh } from "@/lib/use-pull-refresh";
 
 /**
  * Monitoriza subida pós-refeição (> 2 mg/dL/min entre últimos pontos CGM).
@@ -55,6 +56,9 @@ export function PostMealRiseWatcher() {
     }
     setBanner({ ...result, simulated: true });
   }, []);
+
+  const onPullRefresh = useCallback(() => void run(), [run]);
+  usePullToRefresh(onPullRefresh);
 
   useEffect(() => {
     /** Primeiro pedido ~25 s depois do dashboard, para não ir dois à Abbott no mesmo segundo. */

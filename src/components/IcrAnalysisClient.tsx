@@ -20,6 +20,7 @@ import {
   type IcrAnalysisPayload,
 } from "@/app/actions/icr-analysis";
 import { Activity, RefreshCw } from "lucide-react";
+import { usePullToRefresh } from "@/lib/use-pull-refresh";
 
 type RangeDays = 14 | 30 | 42 | 90;
 
@@ -83,6 +84,8 @@ export function IcrAnalysisClient() {
     }
     setLoading(false);
   }, [range]);
+
+  usePullToRefresh(load);
 
   useEffect(() => {
     void load();
