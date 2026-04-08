@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, BookOpen, ChevronRight, Layers } from "lucide-react";
+import { BarChart3, BookOpen, ChevronRight, ClipboardList, Layers } from "lucide-react";
 
 const links = [
   {
@@ -7,6 +7,13 @@ const links = [
     title: "Biblioteca de alimentos",
     description: "Pesquisa, favoritos e registo a partir da tua lista.",
     Icon: BookOpen,
+  },
+  {
+    href: "/refeicoes/registos",
+    title: "Registo de refeições",
+    description:
+      "Pequeno-almoço, almoço, etc. — HC, insulina rápida e histórico.",
+    Icon: ClipboardList,
   },
   {
     href: "/refeicoes/composta",
@@ -33,7 +40,8 @@ export default function RefeicoesPage() {
           Refeições
         </h1>
         <p className="text-sm text-zinc-600">
-          Geres hidratos com a biblioteca e refeições compostas no Supabase.
+          Biblioteca, diário de refeições (HC + insulina), refeições compostas e
+          análises — dados no Supabase.
         </p>
       </header>
 

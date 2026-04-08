@@ -17,6 +17,7 @@ import {
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import type { Food } from "@/types/database";
 import { OpenFoodFactsPanel } from "@/components/OpenFoodFactsPanel";
+import { TcaFoodsPanel } from "@/components/TcaFoodsPanel";
 import {
   ArrowLeft,
   Plus,
@@ -299,7 +300,7 @@ export function FoodLibraryClient() {
               Alimentos
             </h1>
             <p className="text-sm text-zinc-600">
-              Pesquisa, favoritos e registo a partir da tua lista.
+              TCA (INSA), Open Food Facts, e a tua lista pessoal — favoritos e registo no dia.
             </p>
             {!online && (
               <p className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-900">
@@ -310,6 +311,15 @@ export function FoodLibraryClient() {
           </div>
         </div>
       </header>
+
+      <TcaFoodsPanel
+        online={online}
+        onApplyFood={(name, carbs) => {
+          setNewName(name);
+          setNewCarbs(String(carbs));
+          setFormError(null);
+        }}
+      />
 
       <OpenFoodFactsPanel
         online={online}
