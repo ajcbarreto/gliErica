@@ -20,7 +20,8 @@ export default function RefeicoesRegistosPage() {
           Registo de refeições
         </h1>
         <p className="text-sm text-zinc-600">
-          Momento do dia, hidratos, insulina rápida e nota — com histórico.
+          Linhas de alimentos ou compostas, totais, sugestões do histórico e
+          insulina — histórico colapsável.
         </p>
       </header>
 

@@ -3,6 +3,7 @@ export const MEAL_SLOTS = [
   "lunch",
   "snack",
   "dinner",
+  "supper",
   "other",
 ] as const;
 
@@ -18,6 +19,8 @@ export function mealSlotLabelPt(slot: MealSlot): string {
       return "Lanche";
     case "dinner":
       return "Jantar";
+    case "supper":
+      return "Ceia";
     default:
       return "Outro";
   }

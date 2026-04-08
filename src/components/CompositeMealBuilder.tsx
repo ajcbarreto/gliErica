@@ -268,7 +268,7 @@ export function CompositeMealBuilder() {
         {foods.length === 0 ? (
           <p className="py-4 text-sm text-zinc-500">
             Precisas de alimentos na{" "}
-            <Link href="/biblioteca" className="text-accent underline">
+            <Link href="/biblioteca/explorar" className="text-accent underline">
               biblioteca
             </Link>
             .

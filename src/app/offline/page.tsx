@@ -21,10 +21,10 @@ export default function OfflinePage() {
         em fila até voltares a ter rede.
       </p>
       <Link
-        href="/biblioteca"
+        href="/biblioteca/meus-alimentos"
         className="mt-8 rounded-xl bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground"
       >
-        Abrir biblioteca
+        Os meus alimentos (cache)
       </Link>
       <Link
         href="/dashboard"

@@ -79,18 +79,32 @@ export type InsulinEntry = {
   meal_log_id?: string | null;
 };
 
-/** Valores: breakfast | lunch | snack | dinner | other — ver `meal-slots.ts` */
+/** Valores: breakfast | lunch | snack | dinner | supper | other — ver `meal-slots.ts` */
 export type MealSlotDb =
   | "breakfast"
   | "lunch"
   | "snack"
   | "dinner"
+  | "supper"
   | "other";
+
+export type MealLogItem = {
+  id: string;
+  meal_log_id: string;
+  food_id: string | null;
+  composite_meal_id: string | null;
+  ingredient_label: string;
+  grams: number;
+  grams_carbs_line: number;
+  sort_order: number;
+};
 
 export type MealLog = {
   id: string;
   user_id: string;
   logged_on: string;
+  /** Instante do registo (hora); ausente em BD muito antiga — usar created_at. */
+  logged_at?: string | null;
   meal_slot: MealSlotDb;
   grams_carbs: number;
   rapid_insulin_units: number | null;

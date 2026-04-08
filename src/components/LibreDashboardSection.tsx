@@ -1,17 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CartesianGrid,
   Line,
   LineChart,
+  ReferenceDot,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import type { LibreGlucoseSnapshot, LibreTrend } from "@/lib/libre/types";
+import { createClient } from "@/lib/supabase/client";
+import { tryAppUserId } from "@/lib/app-user";
+import { mealSlotLabelPt, type MealSlot } from "@/lib/meal-slots";
 import { usePullToRefresh } from "@/lib/use-pull-refresh";
+import type { MealLog } from "@/types/database";
 import { Activity, RefreshCw } from "lucide-react";
 
 const trendSymbol: Record<LibreTrend, string> = {
@@ -44,6 +49,39 @@ function isLibreGlucoseApiOk(json: unknown): json is LibreGlucoseApiOk {
   return typeof s === "object" && s !== null && "current" in s && "chart24h" in s;
 }
 
+type ChartRow = { t: number; glucose: number };
+
+type MealChartMarker = {
+  id: string;
+  t: number;
+  glucose: number;
+  /** Texto para <title> / acessibilidade */
+  hint: string;
+};
+
+function mealInstantMs(row: Pick<MealLog, "logged_at" | "created_at">): number {
+  const src = row.logged_at ?? row.created_at;
+  return new Date(src).getTime();
+}
+
+/** Glicemia interpolada na curva Libre no instante da refeição. */
+function glucoseAtTime(rows: ChartRow[], tMeal: number): number {
+  if (rows.length === 0) return 0;
+  if (tMeal <= rows[0].t) return rows[0].glucose;
+  const last = rows[rows.length - 1];
+  if (tMeal >= last.t) return last.glucose;
+  for (let i = 0; i < rows.length - 1; i++) {
+    const a = rows[i];
+    const b = rows[i + 1];
+    if (tMeal >= a.t && tMeal <= b.t) {
+      const span = b.t - a.t;
+      const f = span === 0 ? 0 : (tMeal - a.t) / span;
+      return a.glucose + f * (b.glucose - a.glucose);
+    }
+  }
+  return last.glucose;
+}
+
 function cardStyles(range: LibreGlucoseSnapshot["rangeState"]) {
   switch (range) {
     case "hypo":
@@ -71,11 +109,13 @@ function cardStyles(range: LibreGlucoseSnapshot["rangeState"]) {
 }
 
 export function LibreDashboardSection() {
+  const supabase = useMemo(() => createClient(), []);
   const [data, setData] = useState<LibreGlucoseSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [staleNote, setStaleNote] = useState<string | null>(null);
+  const [mealMarkers, setMealMarkers] = useState<MealChartMarker[]>([]);
   const dataRef = useRef<LibreGlucoseSnapshot | null>(null);
   dataRef.current = data;
 
@@ -167,15 +207,75 @@ export function LibreDashboardSection() {
     return () => clearInterval(id);
   }, [load]);
 
-  const chartRows =
+  const chartRows: ChartRow[] =
     data?.chart24h.map((p) => ({
       t: new Date(p.at).getTime(),
-      label: new Date(p.at).toLocaleTimeString("pt-PT", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
       glucose: p.value,
     })) ?? [];
+
+  useEffect(() => {
+    if (!data?.chart24h || data.chart24h.length < 2) {
+      setMealMarkers([]);
+      return;
+    }
+    const series: ChartRow[] = data.chart24h.map((p) => ({
+      t: new Date(p.at).getTime(),
+      glucose: p.value,
+    }));
+    const tMin = series[0].t;
+    const tMax = series[series.length - 1].t;
+
+    const userId = tryAppUserId();
+    if (!userId) {
+      setMealMarkers([]);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      const { data: rows, error: qErr } = await supabase
+        .from("meal_logs")
+        .select(
+          "id, logged_at, created_at, meal_slot, grams_carbs, rapid_insulin_units, note"
+        )
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(120);
+
+      if (cancelled || qErr || !rows) {
+        if (!cancelled && qErr) setMealMarkers([]);
+        return;
+      }
+
+      const markers: MealChartMarker[] = [];
+      for (const raw of rows as MealLog[]) {
+        const t = mealInstantMs(raw);
+        if (t < tMin || t > tMax) continue;
+        const slotPt = mealSlotLabelPt(raw.meal_slot as MealSlot);
+        const ins =
+          raw.rapid_insulin_units != null && raw.rapid_insulin_units > 0
+            ? ` · ${raw.rapid_insulin_units} UI`
+            : "";
+        const note = raw.note?.trim() ?? "";
+        const noteBit =
+          note !== ""
+            ? ` — ${note.slice(0, 48)}${note.length > 48 ? "…" : ""}`
+            : "";
+        markers.push({
+          id: raw.id,
+          t,
+          glucose: glucoseAtTime(series, t),
+          hint: `${slotPt} · ${raw.grams_carbs} g HC${ins} · ${new Date(t).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}${noteBit}`,
+        });
+      }
+      markers.sort((a, b) => a.t - b.t);
+      if (!cancelled) setMealMarkers(markers);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [data, supabase]);
 
   const yMin =
     chartRows.length > 0
@@ -273,6 +373,10 @@ export function LibreDashboardSection() {
             <p className="mb-1 text-xs font-medium text-zinc-600">
               Evolução (24 h)
             </p>
+            <p className="mb-2 text-[11px] leading-snug text-zinc-500">
+              Pontos violeta = refeições registadas na hora correspondente (sobre a
+              curva de glicemia).
+            </p>
             {chartRows.length < 2 ? (
               <p className="py-10 text-center text-xs text-zinc-500">
                 Dados insuficientes para o gráfico.
@@ -282,19 +386,29 @@ export function LibreDashboardSection() {
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
                     data={chartRows}
-                    margin={{ top: 8, right: 8, left: -18, bottom: 4 }}
+                    margin={{ top: 12, right: 8, left: -18, bottom: 4 }}
                   >
                     <CartesianGrid
                       stroke="rgba(15, 23, 42, 0.08)"
                       vertical={false}
                     />
                     <XAxis
-                      dataKey="label"
+                      dataKey="t"
+                      type="number"
+                      domain={["dataMin", "dataMax"]}
                       tick={{ fill: "#64748b", fontSize: 10 }}
                       tickLine={false}
                       axisLine={{ stroke: "rgba(15, 23, 42, 0.12)" }}
                       interval="preserveStartEnd"
                       minTickGap={28}
+                      tickFormatter={(v) =>
+                        typeof v === "number"
+                          ? new Date(v).toLocaleTimeString("pt-PT", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : ""
+                      }
                     />
                     <YAxis
                       domain={[yMin, yMax]}
@@ -314,8 +428,18 @@ export function LibreDashboardSection() {
                         boxShadow: "0 4px 14px rgba(15, 23, 42, 0.1)",
                       }}
                       labelStyle={{ color: "#64748b" }}
+                      labelFormatter={(v) =>
+                        typeof v === "number"
+                          ? new Date(v).toLocaleString("pt-PT", {
+                              day: "2-digit",
+                              month: "short",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : String(v)
+                      }
                       formatter={(value) => [
-                        `${value ?? "—"}`,
+                        `${value != null ? Math.round(Number(value)) : "—"}`,
                         "Glicemia",
                       ]}
                     />
@@ -332,6 +456,31 @@ export function LibreDashboardSection() {
                         strokeWidth: 1,
                       }}
                     />
+                    {mealMarkers.map((m) => (
+                      <ReferenceDot
+                        key={m.id}
+                        x={m.t}
+                        y={m.glucose}
+                        zIndex={80}
+                        shape={(dotProps) => {
+                          const { cx, cy } = dotProps;
+                          if (cx == null || cy == null) return <g />;
+                          return (
+                            <g>
+                              <title>{m.hint}</title>
+                              <circle
+                                cx={cx}
+                                cy={cy}
+                                r={5}
+                                fill="#7c3aed"
+                                stroke="#f5f3ff"
+                                strokeWidth={2}
+                              />
+                            </g>
+                          );
+                        }}
+                      />
+                    ))}
                   </LineChart>
                 </ResponsiveContainer>
               </div>
