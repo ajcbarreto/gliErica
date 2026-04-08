@@ -31,11 +31,11 @@ export function ExploreFoodsClient() {
       <header className="space-y-3">
         <div className="flex flex-wrap items-center gap-3">
           <Link
-            href="/biblioteca"
+            href="/refeicoes"
             className="inline-flex items-center gap-1.5 text-sm text-zinc-500 transition hover:text-accent"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden />
-            Biblioteca
+            Refeições
           </Link>
           <Link
             href="/biblioteca/meus-alimentos"
