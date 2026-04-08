@@ -60,7 +60,7 @@ export default function DefinicoesPage() {
       <div className="flex flex-col items-center gap-2">
         <AppLogo className="h-12 w-12" />
         <p className="text-center text-xs text-zinc-600">
-          GliErica · Supabase + design system escuro
+          GliErica by TeixeiraBarreto
         </p>
       </div>
     </div>

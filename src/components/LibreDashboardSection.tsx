@@ -17,7 +17,7 @@ import { tryAppUserId } from "@/lib/app-user";
 import { mealSlotLabelPt, type MealSlot } from "@/lib/meal-slots";
 import { usePullToRefresh } from "@/lib/use-pull-refresh";
 import type { MealLog } from "@/types/database";
-import { Activity, RefreshCw } from "lucide-react";
+import { Activity, RefreshCw, X } from "lucide-react";
 
 const trendSymbol: Record<LibreTrend, string> = {
   SingleDown: "↓",
@@ -58,6 +58,13 @@ type MealChartMarker = {
   glucose: number;
   /** Texto para <title> / acessibilidade */
   hint: string;
+  slotLabel: string;
+  gramsCarbs: number;
+  rapidInsulinUnits: number | null;
+  note: string | null;
+  /** Instant real da refeição (para data/hora no painel). */
+  tActualMs: number;
+  clampedToEdge: boolean;
 };
 
 /**
@@ -123,6 +130,9 @@ export function LibreDashboardSection() {
   const [error, setError] = useState<string | null>(null);
   const [staleNote, setStaleNote] = useState<string | null>(null);
   const [mealMarkers, setMealMarkers] = useState<MealChartMarker[]>([]);
+  const [selectedMeal, setSelectedMeal] = useState<MealChartMarker | null>(
+    null
+  );
   const dataRef = useRef<LibreGlucoseSnapshot | null>(null);
   dataRef.current = data;
 
@@ -278,15 +288,24 @@ export function LibreDashboardSection() {
           hour: "2-digit",
           minute: "2-digit",
         });
-        const edgeNote =
-          tActual < tMin || tActual > tMax
-            ? " (hora à beira da janela Libre — ponto no limite do gráfico)"
-            : "";
+        const clampedToEdge = tActual < tMin || tActual > tMax;
+        const edgeNote = clampedToEdge
+          ? " (hora à beira da janela Libre — ponto no limite do gráfico)"
+          : "";
         markers.push({
           id: raw.id,
           t: tPlot,
           glucose: glucoseAtTime(series, tPlot),
           hint: `${slotPt} · ${raw.grams_carbs} g HC${ins} · ${timeLabel}${noteBit}${edgeNote}`,
+          slotLabel: slotPt,
+          gramsCarbs: raw.grams_carbs,
+          rapidInsulinUnits:
+            raw.rapid_insulin_units != null && raw.rapid_insulin_units > 0
+              ? raw.rapid_insulin_units
+              : null,
+          note: note !== "" ? note : null,
+          tActualMs: tActual,
+          clampedToEdge,
         });
       }
       markers.sort((a, b) => a.t - b.t);
@@ -297,6 +316,16 @@ export function LibreDashboardSection() {
       cancelled = true;
     };
   }, [data, supabase]);
+
+  useEffect(() => {
+    if (!data) setSelectedMeal(null);
+  }, [data]);
+
+  useEffect(() => {
+    setSelectedMeal((prev) =>
+      prev && !mealMarkers.some((m) => m.id === prev.id) ? null : prev
+    );
+  }, [mealMarkers]);
 
   const yMin =
     chartRows.length > 0
@@ -395,9 +424,9 @@ export function LibreDashboardSection() {
               Evolução (24 h)
             </p>
             <p className="mb-2 text-[11px] leading-snug text-zinc-500">
-              Pontos violeta = refeições no intervalo das leituras Libre (se a hora
-              for logo antes ou depois da curva, o ponto assenta no limite do gráfico;
-              passa o rato para ver a hora real).
+              Pontos violeta = refeições registadas. Toca no ponto para ver o que
+              foi (HC, insulina, nota). Se a hora estiver à beira da janela Libre, o
+              ponto assenta no limite do gráfico.
             </p>
             {chartRows.length < 2 ? (
               <p className="py-10 text-center text-xs text-zinc-500">
@@ -487,16 +516,33 @@ export function LibreDashboardSection() {
                         shape={(dotProps) => {
                           const { cx, cy } = dotProps;
                           if (cx == null || cy == null) return <g />;
+                          const r = 8;
                           return (
-                            <g>
+                            <g
+                              style={{ cursor: "pointer" }}
+                              role="button"
+                              tabIndex={0}
+                              aria-label={`Refeição: ${m.slotLabel}, tocar para detalhes`}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  setSelectedMeal(m);
+                                }
+                              }}
+                            >
                               <title>{m.hint}</title>
                               <circle
                                 cx={cx}
                                 cy={cy}
-                                r={5}
+                                r={r}
                                 fill="#7c3aed"
                                 stroke="#f5f3ff"
                                 strokeWidth={2}
+                                className="transition-opacity hover:opacity-90 active:opacity-100"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedMeal(m);
+                                }}
                               />
                             </g>
                           );
@@ -506,6 +552,88 @@ export function LibreDashboardSection() {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
+            )}
+            {selectedMeal && (
+              <>
+                <button
+                  type="button"
+                  aria-label="Fechar detalhes da refeição"
+                  className="fixed inset-0 z-[70] bg-black/50"
+                  onClick={() => setSelectedMeal(null)}
+                />
+                <div
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="meal-chart-detail-title"
+                  className="fixed bottom-0 left-0 right-0 z-[71] mx-auto max-w-md rounded-t-3xl border border-zinc-200 bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl"
+                >
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p
+                        id="meal-chart-detail-title"
+                        className="text-base font-semibold text-zinc-900"
+                      >
+                        {selectedMeal.slotLabel}
+                      </p>
+                      <p className="mt-0.5 text-xs text-zinc-500">
+                        {new Date(selectedMeal.tActualMs).toLocaleString(
+                          "pt-PT",
+                          {
+                            weekday: "short",
+                            day: "numeric",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }
+                        )}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedMeal(null)}
+                      className="shrink-0 rounded-full p-2 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
+                    >
+                      <X className="h-5 w-5" aria-hidden />
+                    </button>
+                  </div>
+                  <dl className="space-y-2 text-sm">
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-zinc-500">Hidratos</dt>
+                      <dd className="font-medium tabular-nums text-zinc-900">
+                        {selectedMeal.gramsCarbs} g
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-zinc-500">Insulina rápida</dt>
+                      <dd className="font-medium tabular-nums text-zinc-900">
+                        {selectedMeal.rapidInsulinUnits != null
+                          ? `${selectedMeal.rapidInsulinUnits} UI`
+                          : "—"}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt className="shrink-0 text-zinc-500">Glicemia (curva)</dt>
+                      <dd className="text-right font-medium tabular-nums text-zinc-900">
+                        ~{Math.round(selectedMeal.glucose)} mg/dL
+                      </dd>
+                    </div>
+                    {selectedMeal.note && (
+                      <div>
+                        <dt className="text-zinc-500">Nota</dt>
+                        <dd className="mt-1 whitespace-pre-wrap text-zinc-800">
+                          {selectedMeal.note}
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                  {selectedMeal.clampedToEdge && (
+                    <p className="mt-3 rounded-lg bg-amber-50 px-2.5 py-2 text-[11px] text-amber-950">
+                      A hora do registo ficou à beira da janela das leituras Libre; o
+                      ponto foi desenhado no limite do gráfico.
+                    </p>
+                  )}
+                </div>
+              </>
             )}
           </div>
         </>
