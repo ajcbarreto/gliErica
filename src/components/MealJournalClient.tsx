@@ -627,10 +627,10 @@ export function MealJournalClient() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
+    <div className="flex min-w-0 flex-1 flex-col gap-6">
       <form
         onSubmit={(e) => void handleSubmit(e)}
-        className="rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card"
+        className="min-w-0 max-w-full rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card"
       >
         <h2 className="text-sm font-semibold text-zinc-900">
           {editingId ? "Editar refeição" : "Registar refeição"}
@@ -675,8 +675,8 @@ export function MealJournalClient() {
           </div>
         )}
 
-        <div className="mt-4 grid gap-3">
-          <div>
+        <div className="mt-4 grid min-w-0 gap-3">
+          <div className="min-w-0">
             <label
               htmlFor="meal-slot"
               className="mb-1 block text-[11px] font-medium text-zinc-500"
@@ -687,7 +687,7 @@ export function MealJournalClient() {
               id="meal-slot"
               value={slot}
               onChange={(e) => setSlot(e.target.value as MealSlot)}
-              className="w-full rounded-xl border border-zinc-200 bg-canvas px-3 py-2 text-sm text-zinc-900 outline-none ring-accent/30 focus:ring-2"
+              className="w-full min-w-0 max-w-full rounded-xl border border-zinc-200 bg-canvas px-3 py-2 text-sm text-zinc-900 outline-none ring-accent/30 focus:ring-2"
             >
               {MEAL_SLOTS.map((s) => (
                 <option key={s} value={s}>
@@ -697,12 +697,12 @@ export function MealJournalClient() {
             </select>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <label
               htmlFor="meal-day"
               className="mb-1 flex items-center gap-1 text-[11px] font-medium text-zinc-500"
             >
-              <CalendarDays className="h-3.5 w-3.5" aria-hidden />
+              <CalendarDays className="h-3.5 w-3.5 shrink-0" aria-hidden />
               Dia
             </label>
             <input
@@ -710,11 +710,11 @@ export function MealJournalClient() {
               type="date"
               value={loggedOn}
               onChange={(e) => setLoggedOn(e.target.value)}
-              className="w-full rounded-xl border border-zinc-200 bg-canvas px-3 py-2 text-sm text-zinc-900 outline-none ring-accent/30 focus:ring-2"
+              className="box-border w-full min-w-0 max-w-full rounded-xl border border-zinc-200 bg-canvas px-2 py-2 text-sm text-zinc-900 outline-none ring-accent/30 focus:ring-2 [color-scheme:light]"
             />
           </div>
 
-          <div>
+          <div className="min-w-0">
             <label
               htmlFor="meal-time"
               className="mb-1 block text-[11px] font-medium text-zinc-500"
@@ -726,7 +726,7 @@ export function MealJournalClient() {
               type="time"
               value={loggedTime}
               onChange={(e) => setLoggedTime(e.target.value)}
-              className="w-full rounded-xl border border-zinc-200 bg-canvas px-3 py-2 text-sm text-zinc-900 outline-none ring-accent/30 focus:ring-2"
+              className="box-border w-full min-w-0 max-w-full rounded-xl border border-zinc-200 bg-canvas px-2 py-2 text-sm text-zinc-900 outline-none ring-accent/30 focus:ring-2 [color-scheme:light]"
             />
           </div>
 

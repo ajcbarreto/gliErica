@@ -4,7 +4,7 @@ import { ChevronLeft } from "lucide-react";
 
 export default function RefeicoesRegistosPage() {
   return (
-    <div className="flex flex-1 flex-col gap-5">
+    <div className="flex min-w-0 flex-1 flex-col gap-5">
       <header className="space-y-1">
         <Link
           href="/refeicoes"

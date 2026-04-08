@@ -53,11 +53,18 @@ type ChartRow = { t: number; glucose: number };
 
 type MealChartMarker = {
   id: string;
+  /** Posição X no gráfico (limitada à janela das leituras Libre). */
   t: number;
   glucose: number;
   /** Texto para <title> / acessibilidade */
   hint: string;
 };
+
+/**
+ * Incluir refeições até X antes da 1.ª / depois da última leitura do gráfico.
+ * Sem isto, um lanche registado p.ex. 15 min antes da 1.ª leitura Libre caía fora e não desenhava ponto.
+ */
+const MEAL_CHART_SLACK_MS = 4 * 60 * 60 * 1000;
 
 function mealInstantMs(row: Pick<MealLog, "logged_at" | "created_at">): number {
   const src = row.logged_at ?? row.created_at;
@@ -249,8 +256,14 @@ export function LibreDashboardSection() {
 
       const markers: MealChartMarker[] = [];
       for (const raw of rows as MealLog[]) {
-        const t = mealInstantMs(raw);
-        if (t < tMin || t > tMax) continue;
+        const tActual = mealInstantMs(raw);
+        if (
+          tActual < tMin - MEAL_CHART_SLACK_MS ||
+          tActual > tMax + MEAL_CHART_SLACK_MS
+        ) {
+          continue;
+        }
+        const tPlot = Math.min(Math.max(tActual, tMin), tMax);
         const slotPt = mealSlotLabelPt(raw.meal_slot as MealSlot);
         const ins =
           raw.rapid_insulin_units != null && raw.rapid_insulin_units > 0
@@ -261,11 +274,19 @@ export function LibreDashboardSection() {
           note !== ""
             ? ` — ${note.slice(0, 48)}${note.length > 48 ? "…" : ""}`
             : "";
+        const timeLabel = new Date(tActual).toLocaleTimeString("pt-PT", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        const edgeNote =
+          tActual < tMin || tActual > tMax
+            ? " (hora à beira da janela Libre — ponto no limite do gráfico)"
+            : "";
         markers.push({
           id: raw.id,
-          t,
-          glucose: glucoseAtTime(series, t),
-          hint: `${slotPt} · ${raw.grams_carbs} g HC${ins} · ${new Date(t).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}${noteBit}`,
+          t: tPlot,
+          glucose: glucoseAtTime(series, tPlot),
+          hint: `${slotPt} · ${raw.grams_carbs} g HC${ins} · ${timeLabel}${noteBit}${edgeNote}`,
         });
       }
       markers.sort((a, b) => a.t - b.t);
@@ -374,8 +395,9 @@ export function LibreDashboardSection() {
               Evolução (24 h)
             </p>
             <p className="mb-2 text-[11px] leading-snug text-zinc-500">
-              Pontos violeta = refeições registadas na hora correspondente (sobre a
-              curva de glicemia).
+              Pontos violeta = refeições no intervalo das leituras Libre (se a hora
+              for logo antes ou depois da curva, o ponto assenta no limite do gráfico;
+              passa o rato para ver a hora real).
             </p>
             {chartRows.length < 2 ? (
               <p className="py-10 text-center text-xs text-zinc-500">
