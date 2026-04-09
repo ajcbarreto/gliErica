@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { getAppUserId, tryAppUserId } from "@/lib/app-user";
+import { useAuthUser } from "@/hooks/useAuthUser";
 import { getLocalDateKey } from "@/lib/date";
 import { carbsFromFoodGrams, roundCarbs } from "@/lib/carb-math";
 import { saveFoodsCache, loadFoodsCache } from "@/lib/offline/foods-cache";
@@ -21,6 +21,7 @@ function sortFoods(list: Food[]) {
 
 export function useFoodLibrary() {
   const supabase = createClient();
+  const { userId } = useAuthUser();
   const online = useOnlineStatus();
   const [foods, setFoods] = useState<Food[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +40,6 @@ export function useFoodLibrary() {
   const [logError, setLogError] = useState<string | null>(null);
 
   const loadFoods = useCallback(async () => {
-    const userId = tryAppUserId();
     if (!userId) {
       setLoading(false);
       return;
@@ -64,7 +64,7 @@ export function useFoodLibrary() {
       saveFoodsCache(userId, list);
     }
     setLoading(false);
-  }, [supabase]);
+  }, [supabase, userId]);
 
   useEffect(() => {
     void loadFoods();
@@ -102,11 +102,8 @@ export function useFoodLibrary() {
       return;
     }
 
-    let userId: string;
-    try {
-      userId = getAppUserId();
-    } catch {
-      setFormError("Configura NEXT_PUBLIC_GLIERICA_USER_ID no .env.local.");
+    if (!userId) {
+      setFormError("Inicia sessão para adicionar alimentos.");
       return;
     }
 
@@ -162,10 +159,7 @@ export function useFoodLibrary() {
   async function toggleFavorite(food: Food) {
     if (food.id.startsWith("temp-")) return;
 
-    let userId: string;
-    try {
-      userId = getAppUserId();
-    } catch {
+    if (!userId) {
       return;
     }
 
@@ -216,11 +210,8 @@ export function useFoodLibrary() {
       return;
     }
 
-    let userId: string;
-    try {
-      userId = getAppUserId();
-    } catch {
-      setLogError("Configura NEXT_PUBLIC_GLIERICA_USER_ID no .env.local.");
+    if (!userId) {
+      setLogError("Inicia sessão para registar.");
       return;
     }
 

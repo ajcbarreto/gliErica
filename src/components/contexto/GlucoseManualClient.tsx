@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { getAppUserId, tryAppUserId } from "@/lib/app-user";
+import { useAuthUser } from "@/hooks/useAuthUser";
 import {
   datetimeLocalToIso,
   loggedOnFromDatetimeLocal,
@@ -33,6 +33,7 @@ function formatWhen(iso: string) {
 
 export function GlucoseManualClient() {
   const supabase = createClient();
+  const { userId, loading: authLoading } = useAuthUser();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -56,7 +57,6 @@ export function GlucoseManualClient() {
 
   const refresh = useCallback(async () => {
     setMsg(null);
-    const userId = tryAppUserId();
     if (!userId) {
       setLoading(false);
       return;
@@ -79,7 +79,7 @@ export function GlucoseManualClient() {
       setRows((data ?? []) as typeof rows);
     }
     setLoading(false);
-  }, [supabase]);
+  }, [supabase, userId]);
 
   useEffect(() => {
     void refresh();
@@ -99,11 +99,8 @@ export function GlucoseManualClient() {
       return;
     }
 
-    let userId: string;
-    try {
-      userId = getAppUserId();
-    } catch {
-      setMsg("Configura NEXT_PUBLIC_GLIERICA_USER_ID no .env.local.");
+    if (!userId) {
+      setMsg("Inicia sessão para registar.");
       return;
     }
 
@@ -147,10 +144,14 @@ export function GlucoseManualClient() {
     else void refresh();
   }
 
-  if (!tryAppUserId()) {
+  if (authLoading) {
+    return <p className="text-sm text-zinc-500">A carregar…</p>;
+  }
+
+  if (!userId) {
     return (
       <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        Configura o UUID da app para usar este ecrã.
+        Inicia sessão para usar este ecrã.
       </p>
     );
   }

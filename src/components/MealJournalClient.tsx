@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
-import { getAppUserId, tryAppUserId } from "@/lib/app-user";
+import { useAuthUser } from "@/hooks/useAuthUser";
 import {
   formatLocalTimeHm,
   getLocalDateKey,
@@ -67,6 +67,7 @@ function lineKey() {
 
 export function MealJournalClient() {
   const supabase = createClient();
+  const { userId, loading: authLoading } = useAuthUser();
   const [logs, setLogs] = useState<MealLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -124,7 +125,6 @@ export function MealJournalClient() {
       : null;
 
   const load = useCallback(async () => {
-    const userId = tryAppUserId();
     if (!userId) {
       setLogs([]);
       setLoading(false);
@@ -146,10 +146,9 @@ export function MealJournalClient() {
       return;
     }
     setLogs((data ?? []) as MealLog[]);
-  }, [supabase]);
+  }, [supabase, userId]);
 
   const loadFoodsAndComposites = useCallback(async () => {
-    const userId = tryAppUserId();
     if (!userId) return;
 
     const [{ data: foodRows }, { data: mealRows }] = await Promise.all([
@@ -185,10 +184,9 @@ export function MealJournalClient() {
       );
       setItemsByComposite(map);
     }
-  }, [supabase]);
+  }, [supabase, userId]);
 
   const loadSuggestions = useCallback(async () => {
-    const userId = tryAppUserId();
     if (!userId) {
       setSuggestionLogs([]);
       return;
@@ -202,10 +200,9 @@ export function MealJournalClient() {
       .order("created_at", { ascending: false })
       .limit(50);
     setSuggestionLogs((data ?? []) as MealLog[]);
-  }, [supabase, slot]);
+  }, [supabase, slot, userId]);
 
   const loadProfileIcr = useCallback(async () => {
-    const userId = tryAppUserId();
     if (!userId) {
       setIcrGramsPerUnit(null);
       return;
@@ -219,7 +216,7 @@ export function MealJournalClient() {
     setIcrGramsPerUnit(
       typeof g === "number" && g > 0 ? g : null
     );
-  }, [supabase]);
+  }, [supabase, userId]);
 
   usePullToRefresh(() => {
     void load();
@@ -456,11 +453,8 @@ export function MealJournalClient() {
       insulin = iu;
     }
 
-    let userId: string;
-    try {
-      userId = getAppUserId();
-    } catch {
-      setFormError("Configura NEXT_PUBLIC_GLIERICA_USER_ID no .env.local.");
+    if (!userId) {
+      setFormError("Inicia sessão para registar.");
       return;
     }
 
@@ -598,10 +592,7 @@ export function MealJournalClient() {
   }
 
   async function removeLog(id: string) {
-    let userId: string;
-    try {
-      userId = getAppUserId();
-    } catch {
+    if (!userId) {
       return;
     }
     setDeletingId(id);
@@ -618,10 +609,14 @@ export function MealJournalClient() {
     }
   }
 
-  if (!tryAppUserId()) {
+  if (authLoading) {
+    return <p className="text-sm text-zinc-500">A carregar…</p>;
+  }
+
+  if (!userId) {
     return (
       <p className="text-sm text-zinc-600">
-        Configura o UUID da app para veres e registares refeições.
+        Inicia sessão para veres e registares refeições.
       </p>
     );
   }

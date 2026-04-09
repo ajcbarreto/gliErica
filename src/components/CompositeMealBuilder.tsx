@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { getAppUserId, tryAppUserId } from "@/lib/app-user";
+import { useAuthUser } from "@/hooks/useAuthUser";
 import { getLocalDateKey } from "@/lib/date";
 import { carbsFromFoodGrams, roundCarbs } from "@/lib/carb-math";
 import type { CompositeMeal, Food } from "@/types/database";
@@ -14,6 +14,7 @@ type ItemDraft = { food_id: string; grams: number };
 
 export function CompositeMealBuilder() {
   const supabase = createClient();
+  const { userId, loading: authLoading } = useAuthUser();
   const [foods, setFoods] = useState<Food[]>([]);
   const [meals, setMeals] = useState<CompositeMeal[]>([]);
   const [itemsByMeal, setItemsByMeal] = useState<
@@ -32,7 +33,6 @@ export function CompositeMealBuilder() {
   );
 
   const loadAll = useCallback(async () => {
-    const userId = tryAppUserId();
     if (!userId) {
       setLoading(false);
       return;
@@ -77,7 +77,7 @@ export function CompositeMealBuilder() {
     }
 
     setLoading(false);
-  }, [supabase]);
+  }, [supabase, userId]);
 
   usePullToRefresh(loadAll);
 
@@ -123,11 +123,8 @@ export function CompositeMealBuilder() {
       return;
     }
 
-    let userId: string;
-    try {
-      userId = getAppUserId();
-    } catch {
-      setError("Configura NEXT_PUBLIC_GLIERICA_USER_ID no .env.local.");
+    if (!userId) {
+      setError("Inicia sessão para guardar.");
       return;
     }
 
@@ -198,10 +195,7 @@ export function CompositeMealBuilder() {
     const grams = totalStoredForMeal(meal.id);
     if (grams <= 0) return;
 
-    let userId: string;
-    try {
-      userId = getAppUserId();
-    } catch {
+    if (!userId) {
       return;
     }
 
@@ -217,6 +211,18 @@ export function CompositeMealBuilder() {
     if (!err) {
       void loadAll();
     }
+  }
+
+  if (authLoading) {
+    return <p className="text-sm text-zinc-500">A carregar…</p>;
+  }
+
+  if (!userId) {
+    return (
+      <p className="text-sm text-zinc-600">
+        Inicia sessão para gerires refeições compostas.
+      </p>
+    );
   }
 
   return (

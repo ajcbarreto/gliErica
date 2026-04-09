@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { getAppUserId, tryAppUserId } from "@/lib/app-user";
+import { useAuthUser } from "@/hooks/useAuthUser";
 import { getLocalDateKey } from "@/lib/date";
 import { usePullToRefresh } from "@/lib/use-pull-refresh";
 import type { InsulinKind } from "@/types/database";
@@ -47,6 +47,7 @@ function comparisonHint(
 
 export function DashboardInsulinSection() {
   const supabase = createClient();
+  const { userId, loading: authLoading } = useAuthUser();
   const [kind, setKind] = useState<InsulinKind>("rapid");
   /** Bolus de refeição (exclui correções — usado na comparação com HC). */
   const [mealRapidSum, setMealRapidSum] = useState(0);
@@ -65,7 +66,6 @@ export function DashboardInsulinSection() {
 
   const refresh = useCallback(async () => {
     setMsg(null);
-    const userId = tryAppUserId();
     if (!userId) {
       setLoading(false);
       return;
@@ -128,7 +128,7 @@ export function DashboardInsulinSection() {
     setCarbsDay(Math.round(carbSum * 10) / 10);
 
     setLoading(false);
-  }, [supabase]);
+  }, [supabase, userId]);
 
   usePullToRefresh(refresh);
 
@@ -143,11 +143,8 @@ export function DashboardInsulinSection() {
 
   async function addUnits(units: number) {
     if (units <= 0) return;
-    let userId: string;
-    try {
-      userId = getAppUserId();
-    } catch {
-      setMsg("Configura o UUID da app.");
+    if (!userId) {
+      setMsg("Inicia sessão.");
       return;
     }
 
@@ -197,7 +194,11 @@ export function DashboardInsulinSection() {
     void addUnits(Math.round(v * 10) / 10);
   }
 
-  if (!tryAppUserId()) {
+  if (authLoading) {
+    return null;
+  }
+
+  if (!userId) {
     return null;
   }
 

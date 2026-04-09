@@ -1,7 +1,7 @@
 "use server";
 
+import { requireServerUserId } from "@/lib/auth/server-user";
 import { createClient } from "@/lib/supabase/server";
-import { getAppUserId } from "@/lib/app-user";
 import { getLibreGlucoseSnapshot } from "@/lib/libre/snapshot";
 import type { GlucoseDisplayUnit, LibreGlucoseSnapshot } from "@/lib/libre/types";
 import {
@@ -46,9 +46,9 @@ export async function getFavoriteMealImpactScores(): Promise<
   const supabase = await createClient();
   let appUserId: string;
   try {
-    appUserId = getAppUserId();
+    appUserId = await requireServerUserId();
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "UUID da app não configurado.";
+    const msg = e instanceof Error ? e.message : "Sessão inválida.";
     return { ok: false, error: msg };
   }
 
@@ -173,9 +173,9 @@ export async function evaluatePostMealRapidRise(): Promise<PostMealRisePayload> 
   const supabase = await createClient();
   let appUserId: string;
   try {
-    appUserId = getAppUserId();
+    appUserId = await requireServerUserId();
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "UUID da app não configurado.";
+    const msg = e instanceof Error ? e.message : "Sessão inválida.";
     return none(msg);
   }
 

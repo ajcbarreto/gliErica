@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { tryAppUserId } from "@/lib/app-user";
+import { useAuthUser } from "@/hooks/useAuthUser";
 import { ChevronRight, HeartPulse } from "lucide-react";
 
 export function DashboardContextSection() {
-  if (!tryAppUserId()) {
+  const { userId, loading } = useAuthUser();
+  if (loading || !userId) {
     return null;
   }
 

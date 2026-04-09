@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import type { LibreGlucoseSnapshot, LibreTrend } from "@/lib/libre/types";
 import { createClient } from "@/lib/supabase/client";
-import { tryAppUserId } from "@/lib/app-user";
+import { useAuthUser } from "@/hooks/useAuthUser";
 import { mealSlotLabelPt, type MealSlot } from "@/lib/meal-slots";
 import { usePullToRefresh } from "@/lib/use-pull-refresh";
 import type { MealLog } from "@/types/database";
@@ -124,6 +124,7 @@ function cardStyles(range: LibreGlucoseSnapshot["rangeState"]) {
 
 export function LibreDashboardSection() {
   const supabase = useMemo(() => createClient(), []);
+  const { userId } = useAuthUser();
   const [data, setData] = useState<LibreGlucoseSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -242,7 +243,6 @@ export function LibreDashboardSection() {
     const tMin = series[0].t;
     const tMax = series[series.length - 1].t;
 
-    const userId = tryAppUserId();
     if (!userId) {
       setMealMarkers([]);
       return;
@@ -315,7 +315,7 @@ export function LibreDashboardSection() {
     return () => {
       cancelled = true;
     };
-  }, [data, supabase]);
+  }, [data, supabase, userId]);
 
   useEffect(() => {
     if (!data) setSelectedMeal(null);

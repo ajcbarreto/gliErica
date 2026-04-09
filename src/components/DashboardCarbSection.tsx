@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { tryAppUserId } from "@/lib/app-user";
+import { useAuthUser } from "@/hooks/useAuthUser";
 import { getLocalDateKey } from "@/lib/date";
 import { usePullToRefresh } from "@/lib/use-pull-refresh";
 import { CarbRing } from "@/components/CarbRing";
@@ -11,12 +11,12 @@ import { ClipboardList } from "lucide-react";
 
 export function DashboardCarbSection() {
   const supabase = createClient();
+  const { userId } = useAuthUser();
   const [goal, setGoal] = useState(200);
   const [consumed, setConsumed] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    const userId = tryAppUserId();
     if (!userId) {
       setLoading(false);
       return;
@@ -45,13 +45,17 @@ export function DashboardCarbSection() {
       entries?.reduce((acc, row) => acc + Number(row.grams_carbs), 0) ?? 0;
     setConsumed(Math.round(sum * 10) / 10);
     setLoading(false);
-  }, [supabase]);
+  }, [supabase, userId]);
 
   usePullToRefresh(refresh);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  if (!userId) {
+    return null;
+  }
 
   return (
     <div className="rounded-2xl border border-zinc-200/90 bg-surface p-5 shadow-card">

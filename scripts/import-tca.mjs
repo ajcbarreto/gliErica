@@ -8,7 +8,8 @@
  *
  * Opções: --dry-run (só conta linhas), --version "7.1-2026" (gravado em tca_version)
  *
- * Requer NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY (ex.: .env.local).
+ * Requer NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY (recomendado) ou
+ * NEXT_PUBLIC_SUPABASE_ANON_KEY (só se ainda usares migração antiga sem RLS na TCA).
  */
 
 import { createClient } from "@supabase/supabase-js";
@@ -65,10 +66,12 @@ if (!existsSync(file)) {
 }
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const key =
+  process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 if (!dryRun && (!url || !key)) {
   console.error(
-    "Definir NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY (ex.: .env.local)."
+    "Definir NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY (ou anon key legada) em .env.local."
   );
   process.exit(1);
 }

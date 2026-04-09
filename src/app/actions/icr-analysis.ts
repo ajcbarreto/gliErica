@@ -1,7 +1,7 @@
 "use server";
 
+import { requireServerUserId } from "@/lib/auth/server-user";
 import { createClient } from "@/lib/supabase/server";
-import { getAppUserId } from "@/lib/app-user";
 import {
   buildDailySeries,
   impliedValues,
@@ -34,9 +34,9 @@ export async function getInsulinCarbAnalysis(
 > {
   let appUserId: string;
   try {
-    appUserId = getAppUserId();
+    appUserId = await requireServerUserId();
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "UUID da app não configurado.";
+    const msg = e instanceof Error ? e.message : "Sessão inválida.";
     return { ok: false, error: msg };
   }
 

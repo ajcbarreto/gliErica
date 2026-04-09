@@ -1,5 +1,7 @@
 import { Bell, Shield, User } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
+import { AccountSettingsPanel } from "@/components/AccountSettingsPanel";
+import { PasskeySettingsPanel } from "@/components/PasskeySettingsPanel";
 import {
   CarbGoalPanel,
   CorrectionSensitivityPanel,
@@ -27,6 +29,10 @@ export default function DefinicoesPage() {
           Personaliza a tua experiência na app.
         </p>
       </header>
+
+      <AccountSettingsPanel />
+
+      <PasskeySettingsPanel />
 
       <CarbGoalPanel />
 

@@ -2,17 +2,17 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { getAppUserId, tryAppUserId } from "@/lib/app-user";
+import { useAuthUser } from "@/hooks/useAuthUser";
 
 export function CarbGoalPanel() {
   const supabase = createClient();
+  const { userId, loading: authLoading } = useAuthUser();
   const [goal, setGoal] = useState("200");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const userId = tryAppUserId();
     if (!userId) {
       setLoading(false);
       return;
@@ -42,7 +42,7 @@ export function CarbGoalPanel() {
       setGoal(String(data.daily_carb_goal));
     }
     setLoading(false);
-  }, [supabase]);
+  }, [supabase, userId]);
 
   useEffect(() => {
     void load();
@@ -57,11 +57,8 @@ export function CarbGoalPanel() {
       return;
     }
 
-    let userId: string;
-    try {
-      userId = getAppUserId();
-    } catch {
-      setMsg("UUID da app não configurado.");
+    if (!userId) {
+      setMsg("Inicia sessão para guardar.");
       return;
     }
 
@@ -76,13 +73,12 @@ export function CarbGoalPanel() {
     else setMsg("Guardado.");
   }
 
-  if (!tryAppUserId()) {
-    return (
-      <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        Configura <code className="text-xs">NEXT_PUBLIC_GLIERICA_USER_ID</code> no
-        .env.local para usar a meta de hidratos.
-      </p>
-    );
+  if (authLoading) {
+    return <p className="text-sm text-zinc-500">A carregar…</p>;
+  }
+
+  if (!userId) {
+    return null;
   }
 
   if (loading) {
@@ -127,13 +123,13 @@ export function CarbGoalPanel() {
 
 export function WaterGoalPanel() {
   const supabase = createClient();
+  const { userId, loading: authLoading } = useAuthUser();
   const [goalMl, setGoalMl] = useState("2000");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const userId = tryAppUserId();
     if (!userId) {
       setLoading(false);
       return;
@@ -164,7 +160,7 @@ export function WaterGoalPanel() {
       setGoalMl(String(Math.round(g)));
     }
     setLoading(false);
-  }, [supabase]);
+  }, [supabase, userId]);
 
   useEffect(() => {
     void load();
@@ -179,11 +175,8 @@ export function WaterGoalPanel() {
       return;
     }
 
-    let userId: string;
-    try {
-      userId = getAppUserId();
-    } catch {
-      setMsg("UUID da app não configurado.");
+    if (!userId) {
+      setMsg("Inicia sessão para guardar.");
       return;
     }
 
@@ -201,7 +194,11 @@ export function WaterGoalPanel() {
     else setMsg("Guardado.");
   }
 
-  if (!tryAppUserId()) {
+  if (authLoading) {
+    return <p className="text-sm text-zinc-500">A carregar…</p>;
+  }
+
+  if (!userId) {
     return null;
   }
 
@@ -251,13 +248,13 @@ export function WaterGoalPanel() {
  */
 export function InsulinRulePanel() {
   const supabase = createClient();
+  const { userId, loading: authLoading } = useAuthUser();
   const [grams, setGrams] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const userId = tryAppUserId();
     if (!userId) {
       setLoading(false);
       return;
@@ -276,7 +273,7 @@ export function InsulinRulePanel() {
       setGrams("");
     }
     setLoading(false);
-  }, [supabase]);
+  }, [supabase, userId]);
 
   useEffect(() => {
     void load();
@@ -296,11 +293,8 @@ export function InsulinRulePanel() {
       value = v;
     }
 
-    let userId: string;
-    try {
-      userId = getAppUserId();
-    } catch {
-      setMsg("UUID da app não configurado.");
+    if (!userId) {
+      setMsg("Inicia sessão para guardar.");
       return;
     }
 
@@ -318,7 +312,11 @@ export function InsulinRulePanel() {
     else setMsg("Guardado.");
   }
 
-  if (!tryAppUserId()) {
+  if (authLoading) {
+    return <p className="text-sm text-zinc-500">A carregar…</p>;
+  }
+
+  if (!userId) {
     return null;
   }
 
@@ -374,6 +372,7 @@ export function InsulinRulePanel() {
  */
 export function CorrectionSensitivityPanel() {
   const supabase = createClient();
+  const { userId, loading: authLoading } = useAuthUser();
   const [isf, setIsf] = useState("");
   const [target, setTarget] = useState("");
   const [loading, setLoading] = useState(true);
@@ -381,7 +380,6 @@ export function CorrectionSensitivityPanel() {
   const [msg, setMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const userId = tryAppUserId();
     if (!userId) {
       setLoading(false);
       return;
@@ -402,7 +400,7 @@ export function CorrectionSensitivityPanel() {
     else setTarget("");
 
     setLoading(false);
-  }, [supabase]);
+  }, [supabase, userId]);
 
   useEffect(() => {
     void load();
@@ -434,11 +432,8 @@ export function CorrectionSensitivityPanel() {
       targetVal = v;
     }
 
-    let userId: string;
-    try {
-      userId = getAppUserId();
-    } catch {
-      setMsg("UUID da app não configurado.");
+    if (!userId) {
+      setMsg("Inicia sessão para guardar.");
       return;
     }
 
@@ -457,7 +452,11 @@ export function CorrectionSensitivityPanel() {
     else setMsg("Guardado.");
   }
 
-  if (!tryAppUserId()) {
+  if (authLoading) {
+    return <p className="text-sm text-zinc-500">A carregar…</p>;
+  }
+
+  if (!userId) {
     return null;
   }
 

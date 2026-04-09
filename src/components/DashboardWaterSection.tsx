@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { getAppUserId, tryAppUserId } from "@/lib/app-user";
+import { useAuthUser } from "@/hooks/useAuthUser";
 import { getLocalDateKey } from "@/lib/date";
 import { formatLitersFromMl } from "@/lib/water-display";
 import { usePullToRefresh } from "@/lib/use-pull-refresh";
@@ -12,6 +12,7 @@ const QUICK_ML = [200, 250, 500] as const;
 
 export function DashboardWaterSection() {
   const supabase = createClient();
+  const { userId, loading: authLoading } = useAuthUser();
   const [goalMl, setGoalMl] = useState(2000);
   const [totalMl, setTotalMl] = useState(0);
   const [lastEntryId, setLastEntryId] = useState<string | null>(null);
@@ -22,7 +23,6 @@ export function DashboardWaterSection() {
 
   const refresh = useCallback(async () => {
     setMsg(null);
-    const userId = tryAppUserId();
     if (!userId) {
       setLoading(false);
       return;
@@ -52,7 +52,7 @@ export function DashboardWaterSection() {
     setTotalMl(Math.round(sum));
     setLastEntryId(list[0]?.id ?? null);
     setLoading(false);
-  }, [supabase]);
+  }, [supabase, userId]);
 
   usePullToRefresh(refresh);
 
@@ -62,11 +62,8 @@ export function DashboardWaterSection() {
 
   async function addMl(ml: number) {
     if (ml <= 0) return;
-    let userId: string;
-    try {
-      userId = getAppUserId();
-    } catch {
-      setMsg("Configura o UUID da app.");
+    if (!userId) {
+      setMsg("Inicia sessão.");
       return;
     }
 
@@ -114,7 +111,11 @@ export function DashboardWaterSection() {
     void addMl(Math.round(v));
   }
 
-  if (!tryAppUserId()) {
+  if (authLoading) {
+    return null;
+  }
+
+  if (!userId) {
     return null;
   }
 

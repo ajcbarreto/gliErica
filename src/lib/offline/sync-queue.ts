@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/client";
-import { tryAppUserId } from "@/lib/app-user";
 import type { Food } from "@/types/database";
 import { loadQueue, saveQueue, type QueuedOp } from "./queue-types";
 import {
@@ -19,7 +18,10 @@ export async function flushPendingSyncQueue(): Promise<FlushResult> {
   }
 
   const supabase = createClient();
-  const userId = tryAppUserId();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const userId = user?.id;
   if (!userId) {
     return { synced: 0, remaining: loadQueue().length };
   }

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { AppConfigBanner } from "@/components/AppConfigBanner";
 import { AppLogo } from "@/components/AppLogo";
 import { BottomNav } from "@/components/BottomNav";
 import { PendingSyncBar } from "@/components/PendingSyncBar";
@@ -24,7 +23,6 @@ export default function ShellLayout({
             </span>
           </Link>
         </header>
-        <AppConfigBanner />
         <PendingSyncBar />
         {children}
       </main>
