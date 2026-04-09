@@ -35,21 +35,31 @@ export function PasskeySettingsPanel() {
     if (!userId || typeof window === "undefined") return;
     setMsg(null);
     setBusy(true);
-    const supabase = createClient();
-    const { error } = await webauthnMfa(supabase).register({
-      friendlyName: `GliErica · ${new Date().toLocaleDateString("pt-PT")}`,
-      webauthn: {
-        rpId: window.location.hostname,
-        rpOrigins: [window.location.origin],
-      },
-    });
-    setBusy(false);
-    if (error) {
-      setMsg(error.message);
-      return;
+    try {
+      const supabase = createClient();
+      const api = webauthnMfa(supabase);
+      if (!api) {
+        setMsg(
+          "WebAuthn MFA não está disponível neste cliente. Atualiza a app ou contacta o suporte."
+        );
+        return;
+      }
+      const { error } = await api.register({
+        friendlyName: `GliErica · ${new Date().toLocaleDateString("pt-PT")}`,
+        webauthn: {
+          rpId: window.location.hostname,
+          rpOrigins: [window.location.origin],
+        },
+      });
+      if (error) {
+        setMsg(error.message);
+        return;
+      }
+      setMsg("Face ID / passkey associado com sucesso.");
+      void refreshFactors();
+    } finally {
+      setBusy(false);
     }
-    setMsg("Face ID / passkey associado com sucesso.");
-    void refreshFactors();
   }
 
   if (authLoading) {

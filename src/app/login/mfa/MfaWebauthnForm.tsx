@@ -62,9 +62,16 @@ export function MfaWebauthnForm() {
     setLoading(true);
     setStatus("Confirma com Face ID ou Touch ID…");
     const supabase = createClient();
+    const api = webauthnMfa(supabase);
+    if (!api) {
+      setError("WebAuthn MFA não está disponível neste cliente.");
+      setLoading(false);
+      setStatus("");
+      return;
+    }
     const hostname =
       typeof window !== "undefined" ? window.location.hostname : "";
-    const { data, error: authErr } = await webauthnMfa(supabase).authenticate({
+    const { data, error: authErr } = await api.authenticate({
       factorId,
       webauthn: {
         rpId: hostname,

@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-/** MFA WebAuthn no GoTrue (runtime); tipos do pacote podem não expor `auth.webauthn` ainda. */
-type WebauthnMfaApi = {
+/** MFA WebAuthn no GoTrue: `auth.mfa.webauthn` (não `auth.webauthn`). */
+export type WebauthnMfaApi = {
   register: (params: {
     friendlyName: string;
     webauthn?: {
@@ -20,6 +20,9 @@ type WebauthnMfaApi = {
   }) => Promise<{ data: unknown; error: { message: string } | null }>;
 };
 
-export function webauthnMfa(client: SupabaseClient): WebauthnMfaApi {
-  return (client.auth as unknown as { webauthn: WebauthnMfaApi }).webauthn;
+export function webauthnMfa(client: SupabaseClient): WebauthnMfaApi | null {
+  const auth = client.auth as unknown as {
+    mfa?: { webauthn?: WebauthnMfaApi };
+  };
+  return auth.mfa?.webauthn ?? null;
 }
