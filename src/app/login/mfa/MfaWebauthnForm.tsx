@@ -4,7 +4,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatMfaErrorMessage } from "@/lib/auth/mfa-errors";
-import { webauthnMfa } from "@/lib/supabase/webauthn-bridge";
+import {
+  formatWebAuthnUserError,
+  verifyWebAuthnMfaLogin,
+} from "@/lib/auth/mfa-webauthn-ceremony";
 
 export function MfaWebauthnForm() {
   const router = useRouter();
@@ -26,7 +29,7 @@ export function MfaWebauthnForm() {
     );
     if (!web?.length) {
       setError(
-        "Não há Face ID / passkey configurado. Entra nas definições depois do login ou contacta o suporte."
+        "Não há passkey configurada. Configura nas definições depois do login."
       );
       return null;
     }
@@ -59,51 +62,50 @@ export function MfaWebauthnForm() {
   }, [pickWebAuthnFactor, router]);
 
   async function confirmMfa() {
-    if (!factorId) return;
+    if (!factorId || typeof window === "undefined") return;
     setError(null);
     setLoading(true);
-    setStatus("Confirma com Face ID ou Touch ID…");
+    setStatus("Confirma com Face ID, Touch ID ou chave de segurança…");
     const supabase = createClient();
-    const api = webauthnMfa(supabase);
-    if (!api) {
-      setError("WebAuthn MFA não está disponível neste cliente.");
+    try {
+      const { error: vErr } = await verifyWebAuthnMfaLogin(supabase, {
+        factorId,
+        rp: {
+          rpId: window.location.hostname,
+          rpOrigins: [window.location.origin],
+        },
+      });
+      if (vErr) {
+        const raw =
+          "message" in vErr && typeof vErr.message === "string"
+            ? vErr.message
+            : formatWebAuthnUserError(vErr);
+        setError(formatMfaErrorMessage(raw));
+        setLoading(false);
+        setStatus("");
+        return;
+      }
+      const next = searchParams.get("next") || "/dashboard";
+      router.replace(next.startsWith("/") ? next : "/dashboard");
+      router.refresh();
+    } catch (e) {
+      setError(formatWebAuthnUserError(e));
       setLoading(false);
       setStatus("");
-      return;
     }
-    const hostname =
-      typeof window !== "undefined" ? window.location.hostname : "";
-    const { data, error: authErr } = await api.authenticate({
-      factorId,
-      webauthn: {
-        rpId: hostname,
-        rpOrigins:
-          typeof window !== "undefined" ? [window.location.origin] : [],
-      },
-    });
-    if (authErr || !data) {
-      setError(
-        formatMfaErrorMessage(
-          authErr?.message ?? "Falha na autenticação WebAuthn."
-        )
-      );
-      setLoading(false);
-      setStatus("");
-      return;
-    }
-    const next = searchParams.get("next") || "/dashboard";
-    router.replace(next.startsWith("/") ? next : "/dashboard");
-    router.refresh();
   }
 
   return (
     <div className="mx-auto w-full max-w-sm rounded-2xl border border-zinc-200/90 bg-surface p-6 shadow-card">
       <h1 className="text-xl font-semibold text-zinc-900">
-        Segundo passo de segurança
+        Segundo passo (passkey)
       </h1>
       <p className="mt-2 text-sm text-zinc-600">
-        Confirma com Face ID, Touch ID ou chave de segurança para concluir o
-        início de sessão.
+        Desafio MFA WebAuthn: o servidor envia um challenge; o browser usa{" "}
+        <code className="rounded bg-zinc-100 px-1 text-xs">
+          navigator.credentials.get
+        </code>{" "}
+        e a sessão passa a AAL2 após verificação.
       </p>
 
       {error ? (
@@ -122,7 +124,7 @@ export function MfaWebauthnForm() {
           onClick={() => void confirmMfa()}
           className="mt-6 w-full rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-white transition enabled:hover:opacity-95 disabled:opacity-60"
         >
-          {loading ? status || "A aguardar…" : "Continuar com Face ID / passkey"}
+          {loading ? status || "A aguardar…" : "Continuar com passkey"}
         </button>
       ) : !error ? (
         <p className="mt-6 text-sm text-zinc-500">{status}</p>
