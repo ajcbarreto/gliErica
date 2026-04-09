@@ -1,5 +1,6 @@
+import { Suspense } from "react";
 import { AppLogo } from "@/components/AppLogo";
-import { MfaWebauthnForm } from "./MfaWebauthnForm";
+import { MfaLoginRouter } from "./MfaLoginRouter";
 
 export default function LoginMfaPage() {
   return (
@@ -8,7 +9,13 @@ export default function LoginMfaPage() {
         <AppLogo className="h-14 w-14" priority />
         <span className="text-lg font-semibold text-zinc-900">GliErica</span>
       </div>
-      <MfaWebauthnForm />
+      <Suspense
+        fallback={
+          <p className="text-center text-sm text-zinc-500">A carregar…</p>
+        }
+      >
+        <MfaLoginRouter />
+      </Suspense>
     </div>
   );
 }

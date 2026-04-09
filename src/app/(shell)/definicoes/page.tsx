@@ -2,6 +2,7 @@ import { Bell, Shield, User } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
 import { AccountSettingsPanel } from "@/components/AccountSettingsPanel";
 import { PasskeySettingsPanel } from "@/components/PasskeySettingsPanel";
+import { TotpSettingsPanel } from "@/components/TotpSettingsPanel";
 import {
   CarbGoalPanel,
   CorrectionSensitivityPanel,
@@ -31,6 +32,8 @@ export default function DefinicoesPage() {
       </header>
 
       <AccountSettingsPanel />
+
+      <TotpSettingsPanel />
 
       <PasskeySettingsPanel />
 

@@ -34,16 +34,18 @@ export function LoginForm() {
       await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     if (aal?.currentLevel === "aal1" && aal?.nextLevel === "aal2") {
       const { data: fac } = await supabase.auth.mfa.listFactors();
-      const hasWebAuthn = fac?.all.some(
-        (f) => f.factor_type === "webauthn" && f.status === "verified"
-      );
-      if (hasWebAuthn) {
-        router.replace("/login/mfa");
+      const hasMfa = fac?.all.some((f) => f.status === "verified");
+      if (hasMfa) {
+        const next =
+          nextPath.startsWith("/") && nextPath !== "/login"
+            ? `?next=${encodeURIComponent(nextPath)}`
+            : "";
+        router.replace(`/login/mfa${next}`);
         router.refresh();
         return;
       }
       setError(
-        "A conta tem outro segundo factor (não passkey). Configura WebAuthn no Supabase ou associa Face ID nas definições após entrar."
+        "Esta conta pede um segundo factor, mas não há nenhum configurado. Contacta o suporte ou recupera a conta."
       );
       await supabase.auth.signOut();
       setLoading(false);

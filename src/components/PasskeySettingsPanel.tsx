@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { formatMfaErrorMessage } from "@/lib/auth/mfa-errors";
 import { webauthnMfa } from "@/lib/supabase/webauthn-bridge";
 import { useAuthUser } from "@/hooks/useAuthUser";
 import { Fingerprint } from "lucide-react";
@@ -52,7 +53,7 @@ export function PasskeySettingsPanel() {
         },
       });
       if (error) {
-        setMsg(error.message);
+        setMsg(formatMfaErrorMessage(error.message));
         return;
       }
       setMsg("Face ID / passkey associado com sucesso.");
@@ -83,9 +84,11 @@ export function PasskeySettingsPanel() {
             Face ID e passkeys
           </p>
           <p className="mt-1 text-xs text-zinc-500">
-            Ativa o segundo factor WebAuthn no projeto Supabase (Auth →
-            Multi-factor). Depois associa este dispositivo para usar Face ID ou
-            Touch ID ao entrar.
+            Opcional: Face ID / passkey como segundo passo. No Supabase hosted o
+            registo WebAuthn MFA pode estar desativado ao nível da plataforma —
+            se vir erro ao associar, usa o autenticador TOTP acima. Quando
+            estiver ativo no projeto, associa este dispositivo para usar Face ID
+            ou Touch ID ao entrar.
           </p>
         </div>
       </div>

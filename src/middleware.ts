@@ -36,9 +36,16 @@ export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isApi = path.startsWith("/api/");
   const isPublic =
-    path === "/login" || path === "/register" || path === "/offline";
+    path === "/login" ||
+    path === "/login/mfa" ||
+    path === "/register" ||
+    path === "/offline";
 
-  if (!isApi && user && (path === "/login" || path === "/register")) {
+  if (
+    !isApi &&
+    user &&
+    (path === "/login" || path === "/register")
+  ) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

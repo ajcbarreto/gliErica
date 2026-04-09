@@ -1,12 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { formatMfaErrorMessage } from "@/lib/auth/mfa-errors";
 import { webauthnMfa } from "@/lib/supabase/webauthn-bridge";
 
 export function MfaWebauthnForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [factorId, setFactorId] = useState<string | null>(null);
@@ -16,7 +18,7 @@ export function MfaWebauthnForm() {
     const supabase = createClient();
     const { data, error: listErr } = await supabase.auth.mfa.listFactors();
     if (listErr) {
-      setError(listErr.message);
+      setError(formatMfaErrorMessage(listErr.message));
       return null;
     }
     const web = data?.all.filter(
@@ -80,12 +82,17 @@ export function MfaWebauthnForm() {
       },
     });
     if (authErr || !data) {
-      setError(authErr?.message ?? "Falha na autenticação WebAuthn.");
+      setError(
+        formatMfaErrorMessage(
+          authErr?.message ?? "Falha na autenticação WebAuthn."
+        )
+      );
       setLoading(false);
       setStatus("");
       return;
     }
-    router.replace("/dashboard");
+    const next = searchParams.get("next") || "/dashboard";
+    router.replace(next.startsWith("/") ? next : "/dashboard");
     router.refresh();
   }
 
