@@ -1,5 +1,6 @@
 import { DashboardCarbSection } from "@/components/DashboardCarbSection";
 import { DashboardContextSection } from "@/components/DashboardContextSection";
+import { DashboardHypoHost } from "@/components/DashboardHypoHost";
 import { DashboardInsulinSection } from "@/components/DashboardInsulinSection";
 import { DashboardWaterSection } from "@/components/DashboardWaterSection";
 import { LibreDashboardSection } from "@/components/LibreDashboardSection";
@@ -7,6 +8,7 @@ import { PostMealRiseWatcher } from "@/components/PostMealRiseWatcher";
 
 export default function DashboardPage() {
   return (
+    <DashboardHypoHost>
     <div className="flex flex-1 flex-col gap-5">
       <header className="space-y-1">
         <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
@@ -32,5 +34,6 @@ export default function DashboardPage() {
 
       <DashboardWaterSection />
     </div>
+    </DashboardHypoHost>
   );
 }

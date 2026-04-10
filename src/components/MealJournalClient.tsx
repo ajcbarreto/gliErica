@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Drawer as VaulDrawer } from "vaul";
 import { createClient } from "@/lib/supabase/client";
+import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { useAuthUser } from "@/hooks/useAuthUser";
 import {
   formatLocalTimeHm,
@@ -982,153 +983,122 @@ export function MealJournalClient() {
         </div>
       </details>
 
-      <AnimatePresence>
-        {pickerOpen && (
-          <>
-            <motion.button
+      <Drawer
+        open={pickerOpen}
+        onOpenChange={(open) => {
+          if (!open) setPickerOpen(false);
+        }}
+      >
+        <DrawerContent
+          showHandle
+          className="flex max-h-[min(85vh,520px)] flex-col px-0 pt-0"
+        >
+          <VaulDrawer.Title className="sr-only">Escolher alimento</VaulDrawer.Title>
+          <div className="flex items-center justify-between border-b border-zinc-100 px-4 pb-3 pt-1">
+            <h2
+              id="pick-food-title"
+              className="text-lg font-semibold text-zinc-900"
+            >
+              Escolher alimento
+            </h2>
+            <button
               type="button"
-              aria-label="Fechar"
-              className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
               onClick={() => setPickerOpen(false)}
-            />
-            <motion.div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="pick-food-title"
-              className="fixed bottom-0 left-0 right-0 z-[61] mx-auto flex max-h-[min(85vh,520px)] max-w-md flex-col rounded-t-3xl border border-zinc-200 bg-surface shadow-2xl"
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 28, stiffness: 320 }}
+              className="rounded-full p-2 text-zinc-600 hover:bg-zinc-100"
             >
-              <div className="flex items-center justify-between border-b border-zinc-100 p-4 pb-3">
-                <h2
-                  id="pick-food-title"
-                  className="text-lg font-semibold text-zinc-900"
-                >
-                  Escolher alimento
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setPickerOpen(false)}
-                  className="rounded-full p-2 text-zinc-600 hover:bg-zinc-100"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              <div className="relative border-b border-zinc-100 px-4 py-2">
-                <Search className="pointer-events-none absolute left-7 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-                <input
-                  type="search"
-                  placeholder="Pesquisar…"
-                  value={pickerSearch}
-                  onChange={(e) => setPickerSearch(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-200 py-2.5 pl-10 pr-3 text-sm outline-none ring-accent/30 focus:ring-2"
-                />
-              </div>
-              <ul className="flex-1 overflow-y-auto p-2">
-                {filteredPickerFoods.length === 0 ? (
-                  <li className="px-3 py-8 text-center text-sm text-zinc-500">
-                    {foods.length === 0
-                      ? "Adiciona alimentos em Biblioteca → Explorar."
-                      : "Nada encontrado."}
-                  </li>
-                ) : (
-                  filteredPickerFoods.map((f) => (
-                    <li key={f.id}>
-                      <button
-                        type="button"
-                        onClick={() => addFoodLine(f, 100)}
-                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-zinc-900 hover:bg-zinc-100"
-                      >
-                        <span className="min-w-0 flex-1 truncate">
-                          {f.name}
-                        </span>
-                        <span className="shrink-0 text-xs text-zinc-500">
-                          {f.carbs_per_100g} g/100g
-                        </span>
-                      </button>
-                    </li>
-                  ))
-                )}
-              </ul>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="relative border-b border-zinc-100 px-4 py-2">
+            <Search className="pointer-events-none absolute left-7 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+            <input
+              type="search"
+              placeholder="Pesquisar…"
+              value={pickerSearch}
+              onChange={(e) => setPickerSearch(e.target.value)}
+              className="w-full rounded-xl border border-zinc-200 py-2.5 pl-10 pr-3 text-sm outline-none ring-accent/30 focus:ring-2"
+            />
+          </div>
+          <ul className="min-h-0 flex-1 overflow-y-auto p-2">
+            {filteredPickerFoods.length === 0 ? (
+              <li className="px-3 py-8 text-center text-sm text-zinc-500">
+                {foods.length === 0
+                  ? "Adiciona alimentos em Biblioteca → Explorar."
+                  : "Nada encontrado."}
+              </li>
+            ) : (
+              filteredPickerFoods.map((f) => (
+                <li key={f.id}>
+                  <button
+                    type="button"
+                    onClick={() => addFoodLine(f, 100)}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-zinc-900 hover:bg-zinc-100"
+                  >
+                    <span className="min-w-0 flex-1 truncate">{f.name}</span>
+                    <span className="shrink-0 text-xs text-zinc-500">
+                      {f.carbs_per_100g} g/100g
+                    </span>
+                  </button>
+                </li>
+              ))
+            )}
+          </ul>
+        </DrawerContent>
+      </Drawer>
 
-      <AnimatePresence>
-        {compositeOpen && (
-          <>
-            <motion.button
-              type="button"
-              aria-label="Fechar"
-              className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setCompositeOpen(false)}
-            />
-            <motion.div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="pick-composite-title"
-              className="fixed bottom-0 left-0 right-0 z-[61] mx-auto flex max-h-[min(70vh,420px)] max-w-md flex-col rounded-t-3xl border border-zinc-200 bg-surface shadow-2xl"
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 28, stiffness: 320 }}
+      <Drawer
+        open={compositeOpen}
+        onOpenChange={(open) => {
+          if (!open) setCompositeOpen(false);
+        }}
+      >
+        <DrawerContent
+          showHandle
+          className="flex max-h-[min(70vh,420px)] flex-col px-0 pt-0"
+        >
+          <VaulDrawer.Title className="sr-only">Refeição composta</VaulDrawer.Title>
+          <div className="flex items-center justify-between border-b border-zinc-100 p-4">
+            <h2
+              id="pick-composite-title"
+              className="text-lg font-semibold text-zinc-900"
             >
-              <div className="flex items-center justify-between border-b border-zinc-100 p-4">
-                <h2
-                  id="pick-composite-title"
-                  className="text-lg font-semibold text-zinc-900"
-                >
-                  Refeição composta
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setCompositeOpen(false)}
-                  className="rounded-full p-2 text-zinc-600 hover:bg-zinc-100"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              <ul className="flex-1 overflow-y-auto p-2">
-                {composites.map((m) => {
-                  const its = itemsByComposite[m.id] ?? [];
-                  let t = 0;
-                  for (const it of its) {
-                    const f = foodsById[it.food_id];
-                    if (f)
-                      t += carbsFromFoodGrams(it.grams, f.carbs_per_100g);
-                  }
-                  const total = roundCarbs(t);
-                  return (
-                    <li key={m.id}>
-                      <button
-                        type="button"
-                        onClick={() => expandComposite(m)}
-                        className="flex w-full flex-col items-start gap-0.5 rounded-xl px-3 py-3 text-left hover:bg-zinc-100"
-                      >
-                        <span className="font-medium text-zinc-900">
-                          {m.name}
-                        </span>
-                        <span className="text-xs text-zinc-500">
-                          {its.length} ingrediente(s) · ~{total} g HC
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+              Refeição composta
+            </h2>
+            <button
+              type="button"
+              onClick={() => setCompositeOpen(false)}
+              className="rounded-full p-2 text-zinc-600 hover:bg-zinc-100"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <ul className="min-h-0 flex-1 overflow-y-auto p-2">
+            {composites.map((m) => {
+              const its = itemsByComposite[m.id] ?? [];
+              let t = 0;
+              for (const it of its) {
+                const f = foodsById[it.food_id];
+                if (f) t += carbsFromFoodGrams(it.grams, f.carbs_per_100g);
+              }
+              const total = roundCarbs(t);
+              return (
+                <li key={m.id}>
+                  <button
+                    type="button"
+                    onClick={() => expandComposite(m)}
+                    className="flex w-full flex-col items-start gap-0.5 rounded-xl px-3 py-3 text-left hover:bg-zinc-100"
+                  >
+                    <span className="font-medium text-zinc-900">{m.name}</span>
+                    <span className="text-xs text-zinc-500">
+                      {its.length} ingrediente(s) · ~{total} g HC
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }

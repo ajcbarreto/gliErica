@@ -39,6 +39,9 @@ export type Profile = {
   daily_water_goal_ml?: number;
   /** Gramas de HC que 1 UI rápida cobre (regra médica individual). */
   insulin_carb_grams_per_unit?: number | null;
+  /** Contacto opcional para partilha manual / chamada (sem SMS pela app). */
+  emergency_contact_name?: string | null;
+  emergency_contact_phone?: string | null;
   /**
    * Fator de sensibilidade: mg/dL que 1 UI de rápida baixa (valor clínico individual).
    */

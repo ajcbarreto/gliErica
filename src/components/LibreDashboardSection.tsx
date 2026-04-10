@@ -18,6 +18,16 @@ import { mealSlotLabelPt, type MealSlot } from "@/lib/meal-slots";
 import { usePullToRefresh } from "@/lib/use-pull-refresh";
 import type { MealLog } from "@/types/database";
 import { Activity, RefreshCw, X } from "lucide-react";
+import { Drawer as VaulDrawer } from "vaul";
+import { Drawer, DrawerContent } from "@/components/ui/drawer";
+import { LibreDashboardSkeleton } from "@/components/ui/skeleton";
+import { AnimatedGlucoseValue } from "@/components/AnimatedGlucoseValue";
+import {
+  bandBorderClasses,
+  bandFromMgDl,
+  bandGradientClasses,
+  glucoseToMgDl,
+} from "@/lib/glucose-bands";
 
 const trendSymbol: Record<LibreTrend, string> = {
   SingleDown: "↓",
@@ -120,6 +130,54 @@ function cardStyles(range: LibreGlucoseSnapshot["rangeState"]) {
         label: "No alvo",
       };
   }
+}
+
+function GlucoseHeroCard({ data }: { data: LibreGlucoseSnapshot }) {
+  const mgDl = glucoseToMgDl(data.current.value, data.glucoseUnit);
+  const band = bandFromMgDl(mgDl);
+  const cs = cardStyles(data.rangeState);
+
+  return (
+    <div
+      className={`rounded-2xl border p-4 shadow-card transition-colors ${bandBorderClasses(band)} ${bandGradientClasses(band)}`}
+    >
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
+            Estado atual
+          </p>
+          <p className={`mt-1 text-xs font-medium ${cs.accent}`}>{cs.label}</p>
+          <div className="mt-2 flex items-baseline gap-2">
+            <AnimatedGlucoseValue
+              value={data.current.value}
+              unit={data.glucoseUnit}
+              className="text-4xl font-semibold text-zinc-900"
+            />
+            <span
+              className="text-2xl font-light text-zinc-700"
+              title={trendLabelPt[data.current.trend]}
+              aria-label={`Tendência: ${trendLabelPt[data.current.trend]}`}
+            >
+              {trendSymbol[data.current.trend]}
+            </span>
+          </div>
+          <p className="mt-1 text-[11px] text-zinc-600">
+            Alvo {data.targetLow} – {data.targetHigh} ·{" "}
+            {new Date(data.current.at).toLocaleString("pt-PT", {
+              day: "2-digit",
+              month: "short",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </p>
+        </div>
+        <div className="text-right text-[11px] text-zinc-600">
+          <p className="font-medium text-zinc-700">Últimas 3 h</p>
+          <p className="tabular-nums">{data.history3h.length} leituras</p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function LibreDashboardSection() {
@@ -366,7 +424,7 @@ export function LibreDashboardSection() {
       ) : null}
 
       {loading && !data ? (
-        <div className="h-36 animate-pulse rounded-2xl bg-zinc-100/80" />
+        <LibreDashboardSkeleton />
       ) : error && !data ? (
         <div className="rounded-2xl border border-zinc-200 bg-surface p-4 text-sm text-zinc-600">
           <p className="flex items-center gap-2 font-medium text-amber-800">
@@ -377,47 +435,7 @@ export function LibreDashboardSection() {
         </div>
       ) : data ? (
         <>
-          <div
-            className={`rounded-2xl border p-4 shadow-card transition-colors ${cardStyles(data.rangeState).border} ${cardStyles(data.rangeState).bg}`}
-          >
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-                  Estado atual
-                </p>
-                <p
-                  className={`mt-1 text-xs font-medium ${cardStyles(data.rangeState).accent}`}
-                >
-                  {cardStyles(data.rangeState).label}
-                </p>
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-4xl font-semibold tabular-nums tracking-tight text-zinc-900">
-                    {data.current.value}
-                  </span>
-                  <span
-                    className="text-2xl font-light text-zinc-600"
-                    title={trendLabelPt[data.current.trend]}
-                    aria-label={`Tendência: ${trendLabelPt[data.current.trend]}`}
-                  >
-                    {trendSymbol[data.current.trend]}
-                  </span>
-                </div>
-                <p className="mt-1 text-[11px] text-zinc-500">
-                  Alvo {data.targetLow} – {data.targetHigh} ·{" "}
-                  {new Date(data.current.at).toLocaleString("pt-PT", {
-                    day: "2-digit",
-                    month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </p>
-              </div>
-              <div className="text-right text-[11px] text-zinc-500">
-                <p className="font-medium text-zinc-600">Últimas 3 h</p>
-                <p className="tabular-nums">{data.history3h.length} leituras</p>
-              </div>
-            </div>
-          </div>
+          <GlucoseHeroCard data={data} />
 
           <div className="rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card">
             <p className="mb-1 text-xs font-medium text-zinc-600">
@@ -553,88 +571,92 @@ export function LibreDashboardSection() {
                 </ResponsiveContainer>
               </div>
             )}
-            {selectedMeal && (
-              <>
-                <button
-                  type="button"
-                  aria-label="Fechar detalhes da refeição"
-                  className="fixed inset-0 z-[70] bg-black/50"
-                  onClick={() => setSelectedMeal(null)}
-                />
-                <div
-                  role="dialog"
-                  aria-modal="true"
-                  aria-labelledby="meal-chart-detail-title"
-                  className="fixed bottom-0 left-0 right-0 z-[71] mx-auto max-w-md rounded-t-3xl border border-zinc-200 bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl"
-                >
-                  <div className="mb-3 flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p
-                        id="meal-chart-detail-title"
-                        className="text-base font-semibold text-zinc-900"
+            <Drawer
+              open={selectedMeal !== null}
+              onOpenChange={(open) => {
+                if (!open) setSelectedMeal(null);
+              }}
+            >
+              <DrawerContent
+                showHandle
+                className="max-h-[min(85vh,560px)] overflow-y-auto px-4 pt-0"
+              >
+                {selectedMeal ? (
+                  <>
+                    <VaulDrawer.Title className="sr-only">
+                      Detalhe da refeição no gráfico
+                    </VaulDrawer.Title>
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p
+                          id="meal-chart-detail-title"
+                          className="text-base font-semibold text-zinc-900"
+                        >
+                          {selectedMeal.slotLabel}
+                        </p>
+                        <p className="mt-0.5 text-xs text-zinc-500">
+                          {new Date(selectedMeal.tActualMs).toLocaleString(
+                            "pt-PT",
+                            {
+                              weekday: "short",
+                              day: "numeric",
+                              month: "short",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }
+                          )}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedMeal(null)}
+                        className="shrink-0 rounded-full p-2 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
                       >
-                        {selectedMeal.slotLabel}
-                      </p>
-                      <p className="mt-0.5 text-xs text-zinc-500">
-                        {new Date(selectedMeal.tActualMs).toLocaleString(
-                          "pt-PT",
-                          {
-                            weekday: "short",
-                            day: "numeric",
-                            month: "short",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          }
-                        )}
-                      </p>
+                        <X className="h-5 w-5" aria-hidden />
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedMeal(null)}
-                      className="shrink-0 rounded-full p-2 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
-                    >
-                      <X className="h-5 w-5" aria-hidden />
-                    </button>
-                  </div>
-                  <dl className="space-y-2 text-sm">
-                    <div className="flex justify-between gap-4">
-                      <dt className="text-zinc-500">Hidratos</dt>
-                      <dd className="font-medium tabular-nums text-zinc-900">
-                        {selectedMeal.gramsCarbs} g
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-4">
-                      <dt className="text-zinc-500">Insulina rápida</dt>
-                      <dd className="font-medium tabular-nums text-zinc-900">
-                        {selectedMeal.rapidInsulinUnits != null
-                          ? `${selectedMeal.rapidInsulinUnits} UI`
-                          : "—"}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-4">
-                      <dt className="shrink-0 text-zinc-500">Glicemia (curva)</dt>
-                      <dd className="text-right font-medium tabular-nums text-zinc-900">
-                        ~{Math.round(selectedMeal.glucose)} mg/dL
-                      </dd>
-                    </div>
-                    {selectedMeal.note && (
-                      <div>
-                        <dt className="text-zinc-500">Nota</dt>
-                        <dd className="mt-1 whitespace-pre-wrap text-zinc-800">
-                          {selectedMeal.note}
+                    <dl className="space-y-2 text-sm">
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-zinc-500">Hidratos</dt>
+                        <dd className="font-medium tabular-nums text-zinc-900">
+                          {selectedMeal.gramsCarbs} g
                         </dd>
                       </div>
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-zinc-500">Insulina rápida</dt>
+                        <dd className="font-medium tabular-nums text-zinc-900">
+                          {selectedMeal.rapidInsulinUnits != null
+                            ? `${selectedMeal.rapidInsulinUnits} UI`
+                            : "—"}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <dt className="shrink-0 text-zinc-500">
+                          Glicemia (curva)
+                        </dt>
+                        <dd className="text-right font-medium tabular-nums text-zinc-900">
+                          ~{Math.round(selectedMeal.glucose)} mg/dL
+                        </dd>
+                      </div>
+                      {selectedMeal.note && (
+                        <div>
+                          <dt className="text-zinc-500">Nota</dt>
+                          <dd className="mt-1 whitespace-pre-wrap text-zinc-800">
+                            {selectedMeal.note}
+                          </dd>
+                        </div>
+                      )}
+                    </dl>
+                    {selectedMeal.clampedToEdge && (
+                      <p className="mt-3 rounded-lg bg-amber-50 px-2.5 py-2 text-[11px] text-amber-950">
+                        A hora do registo ficou à beira da janela das leituras
+                        Libre; o ponto foi desenhado no limite do gráfico.
+                      </p>
                     )}
-                  </dl>
-                  {selectedMeal.clampedToEdge && (
-                    <p className="mt-3 rounded-lg bg-amber-50 px-2.5 py-2 text-[11px] text-amber-950">
-                      A hora do registo ficou à beira da janela das leituras Libre; o
-                      ponto foi desenhado no limite do gráfico.
-                    </p>
-                  )}
-                </div>
-              </>
-            )}
+                  </>
+                ) : null}
+              </DrawerContent>
+            </Drawer>
           </div>
         </>
       ) : null}

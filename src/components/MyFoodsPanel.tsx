@@ -1,7 +1,9 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { Drawer as VaulDrawer } from "vaul";
+import { Drawer, DrawerContent } from "@/components/ui/drawer";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useFoodLibrary } from "@/hooks/useFoodLibrary";
 import { usePullToRefresh } from "@/lib/use-pull-refresh";
 import { roundCarbs, carbsFromFoodGrams } from "@/lib/carb-math";
@@ -113,7 +115,21 @@ export function MyFoodsPanel() {
       </div>
 
       {loading ? (
-        <p className="py-8 text-center text-sm text-zinc-500">A carregar…</p>
+        <ul className="flex flex-col gap-2" aria-hidden>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <li
+              key={i}
+              className="flex items-center gap-2 rounded-2xl border border-zinc-200/90 bg-surface p-3"
+            >
+              <Skeleton className="h-10 w-10 rounded-xl" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <Skeleton className="h-4 w-[min(200px,55vw)]" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+              <Skeleton className="h-8 w-20 rounded-lg" />
+            </li>
+          ))}
+        </ul>
       ) : filtered.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-zinc-200 py-10 text-center text-sm text-zinc-500">
           {search.trim() || favoritesOnly
@@ -175,29 +191,21 @@ export function MyFoodsPanel() {
         </ul>
       )}
 
-      <AnimatePresence>
-        {logFood && (
-          <>
-            <motion.button
-              type="button"
-              aria-label="Fechar"
-              className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setLogFood(null)}
-            />
-            <motion.div
-              key={logFood.id}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="food-log-title"
-              className="fixed bottom-0 left-0 right-0 z-[61] mx-auto max-w-md rounded-t-3xl border border-zinc-200 bg-surface p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl"
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 28, stiffness: 320 }}
-            >
+      <Drawer
+        open={logFood !== null}
+        onOpenChange={(open) => {
+          if (!open) setLogFood(null);
+        }}
+      >
+        <DrawerContent
+          showHandle
+          className="max-h-[min(88vh,560px)] overflow-y-auto px-5 pt-0"
+        >
+          {logFood ? (
+            <>
+              <VaulDrawer.Title className="sr-only">
+                Registar alimento na biblioteca
+              </VaulDrawer.Title>
               <div className="mb-4 flex items-center justify-between">
                 <h2
                   id="food-log-title"
@@ -260,10 +268,10 @@ export function MyFoodsPanel() {
                       : "Adicionar ao dia de hoje"}
                 </button>
               </form>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+            </>
+          ) : null}
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 /**
- * Compara o momento de um registo de refeição com a curva Libre na hora seguinte.
+ * Compara o momento de um registo de refeição com a curva Libre numa janela pós-T.
  */
 
 export type GlucoseSample = { t: number; v: number };
@@ -32,29 +32,29 @@ export function glucoseAtTime(
   return a.v + r * (b.v - a.v);
 }
 
-export type OneHourAfterMealAnalysis = {
+export type PostMealGlucoseAnalysis = {
   mealAtMs: number;
   baseline: number;
-  /** Glicemia interpolada em T+60 min (se coberta pela série). */
-  valueAt60Min: number | null;
-  /** Pico na janela ]T, T+60 min]. */
+  /** Glicemia interpolada em T + windowMinutes (se coberta pela série). */
+  valueAtWindowEnd: number | null;
+  /** Pico na janela ]T, T + windowMinutes]. */
   maxInWindow: number;
-  deltaAt60Min: number | null;
+  deltaAtWindowEnd: number | null;
   /** Pico vs linha de base (impacto típico “spike”). */
   deltaPeak: number;
-  /** Há pelo menos um ponto CGM dentro da janela de 1 h. */
+  /** Há pelo menos um ponto CGM dentro da janela. */
   hasWindowPoints: boolean;
+  windowMinutes: number;
 };
 
 /**
- * Analisa a curva Libre na hora após o registo da refeição.
- * Usa `created_at` do registo como instante T.
+ * Analisa a curva Libre após o registo da refeição (instante T = created_at do HC).
  */
-export function analyzeGlucoseOneHourAfterMeal(
+export function analyzeGlucoseAfterMeal(
   mealAtMs: number,
   series: GlucoseSample[],
-  windowMinutes = 60
-): OneHourAfterMealAnalysis | null {
+  windowMinutes: number
+): PostMealGlucoseAnalysis | null {
   if (series.length === 0) return null;
 
   const baseline = glucoseAtTime(series, mealAtMs);
@@ -67,19 +67,29 @@ export function analyzeGlucoseOneHourAfterMeal(
       ? Math.max(...inWindow.map((p) => p.v))
       : baseline;
 
-  const v60 = glucoseAtTime(series, windowEnd);
+  const vEnd = glucoseAtTime(series, windowEnd);
   const deltaPeak = maxInWindow - baseline;
-  const delta60 = v60 !== null ? v60 - baseline : null;
+  const deltaEnd = vEnd !== null ? vEnd - baseline : null;
 
   return {
     mealAtMs,
     baseline,
-    valueAt60Min: v60,
+    valueAtWindowEnd: vEnd,
     maxInWindow,
-    deltaAt60Min: delta60,
+    deltaAtWindowEnd: deltaEnd,
     deltaPeak,
     hasWindowPoints: inWindow.length > 0,
+    windowMinutes,
   };
+}
+
+/** @deprecated usar analyzeGlucoseAfterMeal(..., 60) */
+export function analyzeGlucoseOneHourAfterMeal(
+  mealAtMs: number,
+  series: GlucoseSample[],
+  windowMinutes = 60
+): PostMealGlucoseAnalysis | null {
+  return analyzeGlucoseAfterMeal(mealAtMs, series, windowMinutes);
 }
 
 /**

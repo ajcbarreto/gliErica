@@ -14,7 +14,7 @@ function formatDeltaSentence(row: FavoriteImpactRow): string {
   const abs = Math.abs(row.avgDelta);
   const rounded = Number.isInteger(abs) ? String(abs) : abs.toFixed(1);
   const verb = row.avgDelta >= 0 ? "subir" : "descer";
-  return `Esta refeição costuma ${verb} a tua glicemia cerca de ${rounded} ${u} (pico na 1ª hora, média de ${row.sampleCount} registo(s)).`;
+  return `Esta refeição costuma ${verb} a tua glicemia cerca de ${rounded} ${u} (pico nas primeiras 2 h após o registo, média de ${row.sampleCount} registo(s)).`;
 }
 
 export function MealImpactAnalysisSection() {
@@ -64,7 +64,7 @@ export function MealImpactAnalysisSection() {
       </div>
 
       <p className="text-xs leading-relaxed text-zinc-500">
-        Compara o horário de cada registo com a curva Libre da hora seguinte
+        Compara o horário de cada registo com a curva Libre nas 2 h seguintes
         (pico vs glicemia no momento da refeição). Só entram alimentos e refeições
         compostas marcadas como{" "}
         <span className="text-zinc-600">favoritas</span>, com dados CGM nas
@@ -103,6 +103,11 @@ export function MealImpactAnalysisSection() {
               <p className="mt-2 text-sm leading-relaxed text-zinc-600">
                 {formatDeltaSentence(row)}
               </p>
+              {row.ratioHint ? (
+                <p className="mt-2 rounded-lg border border-amber-200/80 bg-amber-50/90 px-3 py-2 text-xs leading-relaxed text-amber-950">
+                  {row.ratioHint}
+                </p>
+              ) : null}
             </li>
           ))}
         </ul>

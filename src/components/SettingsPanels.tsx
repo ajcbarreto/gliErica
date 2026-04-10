@@ -533,3 +533,125 @@ export function CorrectionSensitivityPanel() {
     </form>
   );
 }
+
+/** Contacto opcional para o modo hipo (atalho de chamada; a app não envia SMS). */
+export function EmergencyContactPanel() {
+  const supabase = createClient();
+  const { userId, loading: authLoading } = useAuthUser();
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+    const { data } = await supabase
+      .from("profiles")
+      .select("emergency_contact_name, emergency_contact_phone")
+      .eq("id", userId)
+      .maybeSingle();
+    setName(data?.emergency_contact_name?.trim() ?? "");
+    setPhone(data?.emergency_contact_phone?.trim() ?? "");
+    setLoading(false);
+  }, [supabase, userId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setMsg(null);
+    if (!userId) {
+      setMsg("Inicia sessão para guardar.");
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        emergency_contact_name: name.trim() || null,
+        emergency_contact_phone: phone.trim() || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", userId);
+    setSaving(false);
+    if (error) setMsg(error.message);
+    else setMsg("Guardado.");
+  }
+
+  if (authLoading) {
+    return <p className="text-sm text-zinc-500">A carregar…</p>;
+  }
+  if (!userId) return null;
+  if (loading) {
+    return (
+      <p className="text-sm text-zinc-500">A carregar contacto de emergência…</p>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={(e) => void save(e)}
+      className="rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card"
+    >
+      <p className="text-sm font-medium text-zinc-900">Contacto de confiança (hipo)</p>
+      <p className="mt-1 text-xs text-zinc-500">
+        Opcional: usado no modo <strong>Hipo</strong> para atalho de chamada e
+        texto de partilha. A app não envia SMS nem alertas automáticos a terceiros.
+      </p>
+      <div className="mt-3 space-y-3">
+        <div>
+          <label
+            htmlFor="emergency-name"
+            className="mb-1 block text-[11px] font-medium text-zinc-500"
+          >
+            Nome
+          </label>
+          <input
+            id="emergency-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            autoComplete="name"
+            className="w-full rounded-xl border border-zinc-200 bg-canvas px-3 py-2 text-sm text-zinc-900 outline-none ring-accent/30 focus:ring-2"
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="emergency-phone"
+            className="mb-1 block text-[11px] font-medium text-zinc-500"
+          >
+            Telefone
+          </label>
+          <input
+            id="emergency-phone"
+            inputMode="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            autoComplete="tel"
+            placeholder="+351…"
+            className="w-full rounded-xl border border-zinc-200 bg-canvas px-3 py-2 text-sm tabular-nums text-zinc-900 outline-none ring-accent/30 focus:ring-2"
+          />
+        </div>
+      </div>
+      {msg && (
+        <p
+          className={`mt-2 text-xs ${msg === "Guardado." ? "text-accent" : "text-red-600"}`}
+        >
+          {msg}
+        </p>
+      )}
+      <button
+        type="submit"
+        disabled={saving}
+        className="mt-3 w-full rounded-xl bg-zinc-100 py-2.5 text-sm font-medium text-zinc-900 disabled:opacity-50"
+      >
+        {saving ? "A guardar…" : "Guardar contacto"}
+      </button>
+    </form>
+  );
+}

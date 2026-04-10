@@ -2,6 +2,8 @@
 
 Este documento descreve o que a app **GliErica** faz hoje, como está organizada tecnicamente e que aspetos podem ser úteis para **revisão por outras pessoas** (clínicos, cuidadores, testers ou developers). Foi escrito para acompanhar o código no repositório (abril de 2026).
 
+Um **backlog de evolução** (v2.0: UX, funcionalidades e notas técnicas) está em [version2.md](version2.md); não substitui este documento nem implica compromisso de lançamento.
+
 ---
 
 ## 1. O que é e para quem se destina

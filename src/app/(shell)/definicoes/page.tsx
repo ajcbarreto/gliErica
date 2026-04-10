@@ -3,9 +3,11 @@ import { AppLogo } from "@/components/AppLogo";
 import { AccountSettingsPanel } from "@/components/AccountSettingsPanel";
 import { PasskeySettingsPanel } from "@/components/PasskeySettingsPanel";
 import { TotpSettingsPanel } from "@/components/TotpSettingsPanel";
+import { ExportReportPanel } from "@/components/ExportReportPanel";
 import {
   CarbGoalPanel,
   CorrectionSensitivityPanel,
+  EmergencyContactPanel,
   InsulinRulePanel,
   WaterGoalPanel,
 } from "@/components/SettingsPanels";
@@ -44,6 +46,10 @@ export default function DefinicoesPage() {
       <InsulinRulePanel />
 
       <CorrectionSensitivityPanel />
+
+      <EmergencyContactPanel />
+
+      <ExportReportPanel />
 
       <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-surface shadow-card">
         <ul className="divide-y divide-zinc-200">

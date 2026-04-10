@@ -9,10 +9,16 @@ import {
   slopeToMgDlPerMinute,
 } from "@/lib/analysis/glucose-units";
 import {
-  analyzeGlucoseOneHourAfterMeal,
+  analyzeGlucoseAfterMeal,
   slopeLastIntervalNativePerMin,
   toSortedSeries,
 } from "@/lib/analysis/meal-glucose";
+import { glucoseToMgDl } from "@/lib/glucose-bands";
+
+/** Janela pós-refeição para o “score” de impacto (alinhado ao plano v2). */
+const MEAL_IMPACT_WINDOW_MIN = 120;
+/** Pico médio acima do qual sugerimos rever o rácio (mg/dL), se houver regra guardada. */
+const RATIO_HINT_AVG_DELTA_MG_DL = 45;
 
 type FoodJoin = { id: string; name: string; is_favorite: boolean } | null;
 type CompJoin = { id: string; name: string; is_favorite: boolean } | null;
@@ -33,11 +39,13 @@ export type FavoriteImpactRow = {
   sampleCount: number;
   avgDelta: number;
   unit: GlucoseDisplayUnit;
+  /** Texto opcional sobre rácio HC/UI (referência, não prescrição). */
+  ratioHint?: string | null;
 };
 
 /**
  * Cruza registos de refeições favoritas (alimento ou composta) com a curva Libre
- * nas últimas ~48 h e calcula subida média de pico na 1ª hora (deltaPeak).
+ * nas últimas ~48 h e calcula subida média de pico nas primeiras 2 h (deltaPeak).
  */
 export async function getFavoriteMealImpactScores(): Promise<
   | { ok: true; unit: GlucoseDisplayUnit; items: FavoriteImpactRow[] }
@@ -110,7 +118,11 @@ export async function getFavoriteMealImpactScores(): Promise<
     const mealAtMs = new Date(row.created_at).getTime();
     if (mealAtMs < firstT || mealAtMs > lastT) continue;
 
-    const analysis = analyzeGlucoseOneHourAfterMeal(mealAtMs, series);
+    const analysis = analyzeGlucoseAfterMeal(
+      mealAtMs,
+      series,
+      MEAL_IMPACT_WINDOW_MIN
+    );
     if (!analysis?.hasWindowPoints) continue;
 
     const key = favFood
@@ -123,17 +135,38 @@ export async function getFavoriteMealImpactScores(): Promise<
     buckets.set(key, acc);
   }
 
+  const { data: profileRow } = await supabase
+    .from("profiles")
+    .select("insulin_carb_grams_per_unit")
+    .eq("id", appUserId)
+    .maybeSingle();
+  const ruleGramsPerUi = profileRow?.insulin_carb_grams_per_unit;
+
   const items: FavoriteImpactRow[] = Array.from(buckets.entries()).map(
-    ([key, v]) => ({
-      key,
-      label: v.label,
-      sampleCount: v.deltas.length,
-      avgDelta:
+    ([key, v]) => {
+      const avgDelta =
         Math.round(
           (v.deltas.reduce((a, b) => a + b, 0) / v.deltas.length) * 10
-        ) / 10,
-      unit: snapshot.glucoseUnit,
-    })
+        ) / 10;
+      const avgMgDl = glucoseToMgDl(avgDelta, snapshot.glucoseUnit);
+      let ratioHint: string | null = null;
+      if (
+        typeof ruleGramsPerUi === "number" &&
+        ruleGramsPerUi > 0 &&
+        v.deltas.length >= 2 &&
+        avgMgDl >= RATIO_HINT_AVG_DELTA_MG_DL
+      ) {
+        ratioHint = `Com picos médios elevados após esta refeição favorita, pode ser útil rever com a equipa se a regra orientativa de ~${ruleGramsPerUi} g de HC por 1 UI continua adequada. Informação de referência — não substitui acompanhamento médico.`;
+      }
+      return {
+        key,
+        label: v.label,
+        sampleCount: v.deltas.length,
+        avgDelta,
+        unit: snapshot.glucoseUnit,
+        ratioHint,
+      };
+    }
   );
 
   items.sort((a, b) => b.sampleCount - a.sampleCount);
