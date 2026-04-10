@@ -599,10 +599,15 @@ export function EmergencyContactPanel() {
       onSubmit={(e) => void save(e)}
       className="rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card"
     >
-      <p className="text-sm font-medium text-zinc-900">Contacto de confiança (hipo)</p>
+      <p className="text-sm font-medium text-zinc-900">
+        Atalho de chamada no modo Hipo
+      </p>
       <p className="mt-1 text-xs text-zinc-500">
-        Opcional: usado no modo <strong>Hipo</strong> para atalho de chamada e
-        texto de partilha. A app não envia SMS nem alertas automáticos a terceiros.
+        Opcional. O número aparece no botão <strong>Ligar</strong> quando abres o
+        modo Hipo (a chamada só inicia se tocares). O nome etiqueta o botão.{" "}
+        <strong>Não</strong> enviamos SMS nem fazemos chamadas automáticas para
+        esse número — os avisos no telemóvel são notificações do sistema, se
+        permitires.
       </p>
       <div className="mt-3 space-y-3">
         <div>
@@ -650,7 +655,160 @@ export function EmergencyContactPanel() {
         disabled={saving}
         className="mt-3 w-full rounded-xl bg-zinc-100 py-2.5 text-sm font-medium text-zinc-900 disabled:opacity-50"
       >
-        {saving ? "A guardar…" : "Guardar contacto"}
+        {saving ? "A guardar…" : "Guardar atalho"}
+      </button>
+    </form>
+  );
+}
+
+/** Faixa verde no gráfico Libre (24 h): limites em mg/dL; vazios = alvos do sensor. */
+export function LibreChartZonePanel() {
+  const supabase = createClient();
+  const { userId, loading: authLoading } = useAuthUser();
+  const [low, setLow] = useState("");
+  const [high, setHigh] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+    const { data } = await supabase
+      .from("profiles")
+      .select("libre_chart_zone_low_mg_dl, libre_chart_zone_high_mg_dl")
+      .eq("id", userId)
+      .maybeSingle();
+    const l = data?.libre_chart_zone_low_mg_dl;
+    const h = data?.libre_chart_zone_high_mg_dl;
+    setLow(typeof l === "number" ? String(l) : "");
+    setHigh(typeof h === "number" ? String(h) : "");
+    setLoading(false);
+  }, [supabase, userId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setMsg(null);
+    if (!userId) {
+      setMsg("Inicia sessão para guardar.");
+      return;
+    }
+
+    const tl = low.trim();
+    const th = high.trim();
+    let lowN: number | null = null;
+    let highN: number | null = null;
+
+    if (tl === "" && th === "") {
+      lowN = null;
+      highN = null;
+    } else if (tl === "" || th === "") {
+      setMsg("Preenche ambos os valores ou deixa os dois vazios.");
+      return;
+    } else {
+      lowN = parseFloat(tl.replace(",", "."));
+      highN = parseFloat(th.replace(",", "."));
+      if (Number.isNaN(lowN) || Number.isNaN(highN)) {
+        setMsg("Indica números válidos.");
+        return;
+      }
+      if (lowN < 40 || highN > 400 || lowN >= highN) {
+        setMsg("Usa 40–400 mg/dL e garante que o mínimo é menor que o máximo.");
+        return;
+      }
+    }
+
+    setSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        libre_chart_zone_low_mg_dl: lowN,
+        libre_chart_zone_high_mg_dl: highN,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", userId);
+    setSaving(false);
+    if (error) setMsg(error.message);
+    else setMsg("Guardado.");
+  }
+
+  if (authLoading) {
+    return <p className="text-sm text-zinc-500">A carregar…</p>;
+  }
+  if (!userId) return null;
+  if (loading) {
+    return (
+      <p className="text-sm text-zinc-500">A carregar zona do gráfico…</p>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={(e) => void save(e)}
+      className="rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card"
+    >
+      <p className="text-sm font-medium text-zinc-900">
+        Zona alvo no gráfico Libre
+      </p>
+      <p className="mt-1 text-xs text-zinc-500">
+        Define o intervalo em <strong>mg/dL</strong> para o fundo verde no gráfico
+        de 24 h (valores “normais” para ti, acordados com a equipa). Se deixares
+        vazio, usa-se a faixa alvo que vem do sensor Libre. Com Libre em mmol/L, a
+        app converte automaticamente para desenhar a zona.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-3">
+        <div className="min-w-[120px] flex-1">
+          <label
+            htmlFor="libre-zone-low"
+            className="mb-1 block text-[11px] font-medium text-zinc-500"
+          >
+            Mínimo (mg/dL)
+          </label>
+          <input
+            id="libre-zone-low"
+            inputMode="decimal"
+            placeholder="ex: 70"
+            value={low}
+            onChange={(e) => setLow(e.target.value)}
+            className="w-full rounded-xl border border-zinc-200 bg-canvas px-3 py-2 text-sm tabular-nums text-zinc-900 outline-none ring-accent/30 focus:ring-2"
+          />
+        </div>
+        <div className="min-w-[120px] flex-1">
+          <label
+            htmlFor="libre-zone-high"
+            className="mb-1 block text-[11px] font-medium text-zinc-500"
+          >
+            Máximo (mg/dL)
+          </label>
+          <input
+            id="libre-zone-high"
+            inputMode="decimal"
+            placeholder="ex: 160"
+            value={high}
+            onChange={(e) => setHigh(e.target.value)}
+            className="w-full rounded-xl border border-zinc-200 bg-canvas px-3 py-2 text-sm tabular-nums text-zinc-900 outline-none ring-accent/30 focus:ring-2"
+          />
+        </div>
+      </div>
+      {msg && (
+        <p
+          className={`mt-2 text-xs ${msg === "Guardado." ? "text-accent" : "text-red-600"}`}
+        >
+          {msg}
+        </p>
+      )}
+      <button
+        type="submit"
+        disabled={saving}
+        className="mt-3 w-full rounded-xl bg-zinc-100 py-2.5 text-sm font-medium text-zinc-900 disabled:opacity-50"
+      >
+        {saving ? "A guardar…" : "Guardar zona"}
       </button>
     </form>
   );

@@ -10,7 +10,8 @@ import { usePullToRefresh } from "@/lib/use-pull-refresh";
 
 /**
  * Monitoriza subida pós-refeição (> 2 mg/dL/min entre últimos pontos CGM).
- * Tenta notificação do browser; se não for possível, mostra aviso in-app (simulação).
+ * Com permissão: notificação no telemóvel (sistema). Sem permissão: aviso só no ecrã da app.
+ * Nunca SMS nem chamadas.
  */
 export function PostMealRiseWatcher() {
   const [banner, setBanner] = useState<PostMealRisePayload | null>(null);
@@ -96,11 +97,15 @@ export function PostMealRiseWatcher() {
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-amber-900">
             {banner.simulated
-              ? "Alerta (simulação — notificações desativadas)"
+              ? "Alerta no ecrã (notificações do telemóvel desativadas)"
               : "Alerta pós-refeição"}
           </p>
           <p className="mt-1 text-xs leading-relaxed text-amber-900/90">
             {banner.message}
+          </p>
+          <p className="mt-2 text-[11px] leading-relaxed text-amber-900/80">
+            Podes ativar avisos no telemóvel como noutras apps — não são SMS nem
+            chamadas.
           </p>
           {banner.simulated && permission !== "granted" && (
             <button
@@ -108,7 +113,7 @@ export function PostMealRiseWatcher() {
               onClick={() => void requestNotifications()}
               className="mt-3 rounded-lg bg-amber-200/80 px-3 py-2 text-xs font-medium text-amber-950 transition hover:bg-amber-300/90"
             >
-              Ativar notificações do browser
+              Permitir notificações no telemóvel
             </button>
           )}
         </div>

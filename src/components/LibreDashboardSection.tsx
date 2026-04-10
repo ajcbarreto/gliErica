@@ -5,6 +5,7 @@ import {
   CartesianGrid,
   Line,
   LineChart,
+  ReferenceArea,
   ReferenceDot,
   ResponsiveContainer,
   Tooltip,
@@ -27,6 +28,7 @@ import {
   bandFromMgDl,
   bandGradientClasses,
   glucoseToMgDl,
+  mgDlToDisplayUnit,
 } from "@/lib/glucose-bands";
 
 const trendSymbol: Record<LibreTrend, string> = {
@@ -192,6 +194,11 @@ export function LibreDashboardSection() {
   const [selectedMeal, setSelectedMeal] = useState<MealChartMarker | null>(
     null
   );
+  /** Limites em mg/dL vindos do perfil; null = usar targetLow/targetHigh do snapshot. */
+  const [chartZoneMgDl, setChartZoneMgDl] = useState<{
+    low: number;
+    high: number;
+  } | null>(null);
   const dataRef = useRef<LibreGlucoseSnapshot | null>(null);
   dataRef.current = data;
 
@@ -385,13 +392,67 @@ export function LibreDashboardSection() {
     );
   }, [mealMarkers]);
 
+  useEffect(() => {
+    if (!userId || !data) {
+      setChartZoneMgDl(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const { data: row } = await supabase
+        .from("profiles")
+        .select("libre_chart_zone_low_mg_dl, libre_chart_zone_high_mg_dl")
+        .eq("id", userId)
+        .maybeSingle();
+      if (cancelled) return;
+      const lo = row?.libre_chart_zone_low_mg_dl;
+      const hi = row?.libre_chart_zone_high_mg_dl;
+      if (
+        typeof lo === "number" &&
+        typeof hi === "number" &&
+        lo > 0 &&
+        hi > 0 &&
+        lo < hi
+      ) {
+        setChartZoneMgDl({ low: lo, high: hi });
+      } else {
+        setChartZoneMgDl(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, supabase, data]);
+
+  const zoneLowY =
+    data && chartRows.length > 0
+      ? chartZoneMgDl != null
+        ? mgDlToDisplayUnit(chartZoneMgDl.low, data.glucoseUnit)
+        : data.targetLow
+      : null;
+  const zoneHighY =
+    data && chartRows.length > 0
+      ? chartZoneMgDl != null
+        ? mgDlToDisplayUnit(chartZoneMgDl.high, data.glucoseUnit)
+        : data.targetHigh
+      : null;
+  const showZoneBand =
+    zoneLowY != null &&
+    zoneHighY != null &&
+    zoneLowY < zoneHighY;
+
+  const glucoses = chartRows.map((r) => r.glucose);
   const yMin =
     chartRows.length > 0
-      ? Math.min(...chartRows.map((r) => r.glucose)) * 0.92
+      ? (showZoneBand
+          ? Math.min(...glucoses, zoneLowY!)
+          : Math.min(...glucoses)) * 0.92
       : 0;
   const yMax =
     chartRows.length > 0
-      ? Math.max(...chartRows.map((r) => r.glucose)) * 1.08
+      ? (showZoneBand
+          ? Math.max(...glucoses, zoneHighY!)
+          : Math.max(...glucoses)) * 1.08
       : 200;
 
   return (
@@ -443,8 +504,9 @@ export function LibreDashboardSection() {
             </p>
             <p className="mb-2 text-[11px] leading-snug text-zinc-500">
               Pontos violeta = refeições registadas. Toca no ponto para ver o que
-              foi (HC, insulina, nota). Se a hora estiver à beira da janela Libre, o
-              ponto assenta no limite do gráfico.
+              foi (HC, insulina, nota). A faixa verde é a zona alvo (Definições ou
+              alvos do sensor). Se a hora estiver à beira da janela Libre, o ponto
+              assenta no limite do gráfico.
             </p>
             {chartRows.length < 2 ? (
               <p className="py-10 text-center text-xs text-zinc-500">
@@ -487,6 +549,16 @@ export function LibreDashboardSection() {
                       axisLine={false}
                       tickFormatter={(v) => String(Math.round(v))}
                     />
+                    {showZoneBand ? (
+                      <ReferenceArea
+                        y1={zoneLowY!}
+                        y2={zoneHighY!}
+                        fill="#bbf7d0"
+                        fillOpacity={0.5}
+                        strokeOpacity={0}
+                        ifOverflow="visible"
+                      />
+                    ) : null}
                     <Tooltip
                       contentStyle={{
                         backgroundColor: "#ffffff",

@@ -182,7 +182,7 @@ export type PostMealRisePayload = {
   message: string;
   lastMealAt: string | null;
   entryId: string | null;
-  /** Preenchido no cliente quando se usa aviso in-app em vez de Notification. */
+  /** Aviso in-app quando não há permissão para notificação do sistema. */
   simulated?: boolean;
 };
 

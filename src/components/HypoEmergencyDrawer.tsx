@@ -5,7 +5,7 @@ import { Drawer as VaulDrawer } from "vaul";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthUser } from "@/hooks/useAuthUser";
-import { AlarmClock, Phone, Share2, Bell } from "lucide-react";
+import { AlarmClock, Bell, Phone } from "lucide-react";
 
 const FAST_CARBS_G = 15;
 const TIMER_MS = 15 * 60 * 1000;
@@ -16,8 +16,8 @@ type Props = {
 };
 
 /**
- * Modo SOS hipo: HC rápido sugerido (regra 15/15), cronómetro, lembrete local,
- * partilha e atalho telefónico — sem SMS automático.
+ * Modo SOS hipo: HC sugerido (regra 15/15), cronómetro, notificação no sistema
+ * (telemóvel) opcional, atalho Ligar manual. Sem SMS nem chamadas automáticas.
  */
 export function HypoEmergencyDrawer({ open, onOpenChange }: Props) {
   const { userId } = useAuthUser();
@@ -72,8 +72,8 @@ export function HypoEmergencyDrawer({ open, onOpenChange }: Props) {
         clearTimer();
         if (typeof window !== "undefined" && "Notification" in window) {
           if (Notification.permission === "granted") {
-            new Notification("GliErica — verificar glicemia", {
-              body: "Passaram 15 minutos desde o tratamento da hipo. Volta a medir.",
+            new Notification("GliErica — voltar a medir", {
+              body: "Passaram 15 minutos desde o tratamento da hipo. Volta a medir a glicemia.",
               tag: "glierica-hypo-timer",
             });
           }
@@ -89,33 +89,14 @@ export function HypoEmergencyDrawer({ open, onOpenChange }: Props) {
     return `${m}:${sec.toString().padStart(2, "0")}`;
   };
 
-  async function requestNotify() {
+  async function requestDeviceReminder() {
     if (typeof window === "undefined" || !("Notification" in window)) return;
     const p = await Notification.requestPermission();
     if (p === "granted") {
       new Notification("GliErica — modo hipo", {
-        body: `Tratamento sugerido: ~${FAST_CARBS_G} g de HC de absorção rápida. Confirma com a tua equipa.`,
+        body: `Referência: ~${FAST_CARBS_G} g de HC rápidos; cronómetro disponível na app. Confirma com a tua equipa.`,
         tag: "glierica-hypo",
       });
-    }
-  }
-
-  async function shareContext() {
-    const text = [
-      "Modo hipo (GliErica): tratamento de referência ~15 g HC rápidos; cronómetro 15 min iniciado.",
-      contactName ? `Contacto: ${contactName}` : null,
-      "Isto é informação de apoio, não substitui orientação médica.",
-    ]
-      .filter(Boolean)
-      .join("\n");
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "GliErica — hipo", text });
-      } catch {
-        /* user cancelled */
-      }
-    } else {
-      await navigator.clipboard.writeText(text);
     }
   }
 
@@ -154,19 +135,11 @@ export function HypoEmergencyDrawer({ open, onOpenChange }: Props) {
           <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             <button
               type="button"
-              onClick={() => void requestNotify()}
+              onClick={() => void requestDeviceReminder()}
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-surface px-4 py-2.5 text-sm font-medium text-zinc-800"
             >
               <Bell className="h-4 w-4" aria-hidden />
-              Lembrete no dispositivo
-            </button>
-            <button
-              type="button"
-              onClick={() => void shareContext()}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-surface px-4 py-2.5 text-sm font-medium text-zinc-800"
-            >
-              <Share2 className="h-4 w-4" aria-hidden />
-              Partilhar texto
+              Notificação no telemóvel
             </button>
             {telHref ? (
               <a
@@ -178,13 +151,14 @@ export function HypoEmergencyDrawer({ open, onOpenChange }: Props) {
               </a>
             ) : (
               <p className="text-xs text-zinc-500">
-                Define um contacto em Definições para atalho de chamada.
+                Em Definições podes guardar um número para o botão Ligar (opcional).
               </p>
             )}
           </div>
           <p className="mt-4 text-[11px] leading-relaxed text-zinc-500">
-            A app não envia SMS nem notificações automáticas a terceiros. Web Push
-            completo pode ser configurado noutra fase.
+            Os avisos no telemóvel usam o sistema (como noutras apps), se permitires
+            —             não são SMS nem chamadas automáticas. O botão Ligar só inicia a chamada
+            se tu tocares.
           </p>
         </div>
       </DrawerContent>

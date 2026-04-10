@@ -5,6 +5,14 @@ export function glucoseToMgDl(value: number, unit: GlucoseDisplayUnit): number {
   return unit === "mmol/L" ? value * 18.0182 : value;
 }
 
+/** Converte mg/dL para a unidade mostrada pelo Libre no gráfico. */
+export function mgDlToDisplayUnit(
+  mgDl: number,
+  unit: GlucoseDisplayUnit
+): number {
+  return unit === "mmol/L" ? mgDl / 18.0182 : mgDl;
+}
+
 export type GlucoseBand = "hypo" | "target" | "hyper";
 
 /** Faixas alinhadas ao plano v2 (mg/dL): <70 hipo, 70–160 alvo, >160 hiper. */

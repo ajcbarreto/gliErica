@@ -9,6 +9,7 @@ import {
   CorrectionSensitivityPanel,
   EmergencyContactPanel,
   InsulinRulePanel,
+  LibreChartZonePanel,
   WaterGoalPanel,
 } from "@/components/SettingsPanels";
 
@@ -44,6 +45,8 @@ export default function DefinicoesPage() {
       <WaterGoalPanel />
 
       <InsulinRulePanel />
+
+      <LibreChartZonePanel />
 
       <CorrectionSensitivityPanel />
 

@@ -48,6 +48,9 @@ export type Profile = {
   isf_drop_mg_dl_per_unit?: number | null;
   /** Alvo de glicemia para correções, mg/dL. */
   correction_target_mg_dl?: number | null;
+  /** Zona alvo no gráfico Libre (mg/dL); null = usar alvos do sensor na app. */
+  libre_chart_zone_low_mg_dl?: number | null;
+  libre_chart_zone_high_mg_dl?: number | null;
 };
 
 export type WaterEntry = {
