@@ -22,10 +22,16 @@ export type MealLogItemRow = {
 
 export type LibrePoint = { measured_at: string; value_mg_dl: number };
 
-/** StandardFonts Helvetica usam WinAnsi; vários caracteres Unicode falham (ex. ->). */
+/**
+ * StandardFonts Helvetica usam WinAnsi; muitos Unicode falham em drawText (ex. U+2192).
+ * Substituições explícitas + filtro final só ASCII + Latin-1 (PDF WinAnsi habitual).
+ */
 function pdfSafeText(s: string): string {
-  return s
+  let t = s
+    .normalize("NFKC")
+    .replace(/\uFEFF/g, "")
     .replace(/\u202F|\u00A0/g, " ")
+    .replace(/[\u2190-\u21FF\u27F5-\u27FF\u2900-\u297F\u2B00-\u2BFF]/g, "->")
     .replace(/\u2192/g, "->")
     .replace(/\u2014/g, "-")
     .replace(/\u2013/g, "-")
@@ -34,6 +40,25 @@ function pdfSafeText(s: string): string {
     .replace(/\u2026/g, "...")
     .replace(/\u201C|\u201D/g, '"')
     .replace(/\u2018|\u2019/g, "'");
+
+  let out = "";
+  for (const ch of Array.from(t)) {
+    const cp = ch.codePointAt(0)!;
+    if (cp === 9 || cp === 10 || cp === 13) {
+      out += ch;
+      continue;
+    }
+    if (cp >= 0x20 && cp <= 0x7e) {
+      out += ch;
+      continue;
+    }
+    if (cp >= 0xa0 && cp <= 0xff) {
+      out += ch;
+      continue;
+    }
+    out += "?";
+  }
+  return out;
 }
 
 function wrapLines(text: string, maxChars: number): string[] {

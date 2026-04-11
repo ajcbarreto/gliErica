@@ -171,7 +171,7 @@ export async function GET(request: Request) {
           "refeição_item",
           csvEscape(new Date(when).toISOString()),
           csvEscape(
-            `${it.ingredient_label}: ${it.grams} g → ${it.grams_carbs_line} g HC`
+            `${it.ingredient_label}: ${it.grams} g -> ${it.grams_carbs_line} g HC`
           ),
           "",
         ].join(",")
