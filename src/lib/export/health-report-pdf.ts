@@ -22,8 +22,23 @@ export type MealLogItemRow = {
 
 export type LibrePoint = { measured_at: string; value_mg_dl: number };
 
+/** StandardFonts Helvetica usam WinAnsi; vários caracteres Unicode falham (ex. ->). */
+function pdfSafeText(s: string): string {
+  return s
+    .replace(/\u202F|\u00A0/g, " ")
+    .replace(/\u2192/g, "->")
+    .replace(/\u2014/g, "-")
+    .replace(/\u2013/g, "-")
+    .replace(/\u2022/g, "*")
+    .replace(/\u00B7/g, " | ")
+    .replace(/\u2026/g, "...")
+    .replace(/\u201C|\u201D/g, '"')
+    .replace(/\u2018|\u2019/g, "'");
+}
+
 function wrapLines(text: string, maxChars: number): string[] {
-  const words = text.split(/\s+/);
+  const safe = pdfSafeText(text);
+  const words = safe.split(/\s+/);
   const lines: string[] = [];
   let cur = "";
   for (const w of words) {
@@ -31,7 +46,7 @@ function wrapLines(text: string, maxChars: number): string[] {
     if (next.length <= maxChars) cur = next;
     else {
       if (cur) lines.push(cur);
-      cur = w.length > maxChars ? `${w.slice(0, maxChars - 1)}…` : w;
+      cur = w.length > maxChars ? `${w.slice(0, maxChars - 1)}...` : w;
     }
   }
   if (cur) lines.push(cur);
@@ -127,14 +142,26 @@ export async function buildHealthReportPdf(input: {
 
   function drawHeaderLine(text: string, size: number, f = fontBold, col = TEXT) {
     ensure(size + 6);
-    page.drawText(text, { x: MARGIN, y: y - size, size, font: f, color: col });
+    page.drawText(pdfSafeText(text), {
+      x: MARGIN,
+      y: y - size,
+      size,
+      font: f,
+      color: col,
+    });
     y -= size + 8;
   }
 
   function drawMutedLine(text: string, size = LINE_SM) {
     for (const ln of wrapLines(text, 88)) {
       ensure(LINE);
-      page.drawText(ln, { x: MARGIN, y: y - size, size, font, color: MUTED });
+      page.drawText(pdfSafeText(ln), {
+        x: MARGIN,
+        y: y - size,
+        size,
+        font,
+        color: MUTED,
+      });
       y -= LINE;
     }
   }
@@ -143,7 +170,7 @@ export async function buildHealthReportPdf(input: {
     const max = indent > 0 ? 82 : 88;
     for (const ln of wrapLines(text, max)) {
       ensure(LINE);
-      page.drawText(ln, {
+      page.drawText(pdfSafeText(ln), {
         x: MARGIN + indent,
         y: y - size,
         size,
@@ -158,7 +185,7 @@ export async function buildHealthReportPdf(input: {
     y -= 6;
     ensure(22);
     drawSectionBar(page, y, 16);
-    page.drawText(label, {
+    page.drawText(pdfSafeText(label), {
       x: MARGIN + 12,
       y: y - 13,
       size: 12,
@@ -177,7 +204,7 @@ export async function buildHealthReportPdf(input: {
     color: ACCENT,
   });
 
-  drawHeaderLine("GliErica — relatório de saúde", 18);
+  drawHeaderLine("GliErica - relatório de saúde", 18);
   drawMutedLine(
     `Últimos ${input.days} dias · Gerado em ${new Date().toLocaleString("pt-PT")}`
   );
@@ -258,7 +285,7 @@ export async function buildHealthReportPdf(input: {
       });
     }
 
-    page.drawText("mg/dL", {
+    page.drawText(pdfSafeText("mg/dL"), {
       x: MARGIN + 6,
       y: chartBottom + chartH - 12,
       size: 8,
@@ -294,7 +321,7 @@ export async function buildHealthReportPdf(input: {
     }
     const items = (input.itemsByMeal.get(m.id) ?? []).slice().sort((a, b) => a.sort_order - b.sort_order);
     for (const it of items) {
-      const line = `  • ${it.ingredient_label}: ${it.grams} g → ${it.grams_carbs_line} g HC`;
+      const line = `  * ${it.ingredient_label}: ${it.grams} g -> ${it.grams_carbs_line} g HC`;
       drawBodyLine(line, LINE_SM, 10);
     }
     if (items.length === 0) {
@@ -342,13 +369,16 @@ export async function buildHealthReportPdf(input: {
 
   y -= 8;
   ensure(20);
-  page.drawText("GliErica — relatório gerado pela aplicação", {
-    x: MARGIN,
-    y: MARGIN,
-    size: 8,
-    font,
-    color: MUTED,
-  });
+  page.drawText(
+    pdfSafeText("GliErica - relatório gerado pela aplicação"),
+    {
+      x: MARGIN,
+      y: MARGIN,
+      size: 8,
+      font,
+      color: MUTED,
+    }
+  );
 
   return pdf.save();
 }
