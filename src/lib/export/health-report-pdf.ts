@@ -27,7 +27,7 @@ export type LibrePoint = { measured_at: string; value_mg_dl: number };
  * Substituições explícitas + filtro final só ASCII + Latin-1 (PDF WinAnsi habitual).
  */
 function pdfSafeText(s: string): string {
-  let t = s
+  const t = s
     .normalize("NFKC")
     .replace(/\uFEFF/g, "")
     .replace(/\u202F|\u00A0/g, " ")
