@@ -1,4 +1,5 @@
-import { Bell, Shield, User } from "lucide-react";
+import Link from "next/link";
+import { Bell, ChevronRight, Shield, User } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
 import { AccountSettingsPanel } from "@/components/AccountSettingsPanel";
 import { PasskeySettingsPanel } from "@/components/PasskeySettingsPanel";
@@ -14,9 +15,24 @@ import {
 } from "@/components/SettingsPanels";
 
 const rows = [
-  { label: "Perfil", desc: "Nome e dados pessoais", icon: User },
-  { label: "Notificações", desc: "Lembretes e alertas", icon: Bell },
-  { label: "Privacidade", desc: "Dados e partilha", icon: Shield },
+  {
+    label: "Perfil",
+    desc: "Nome e dados pessoais",
+    icon: User,
+    href: "/definicoes/perfil" as const,
+  },
+  {
+    label: "Notificações",
+    desc: "Lembretes e alertas",
+    icon: Bell,
+    href: null,
+  },
+  {
+    label: "Privacidade",
+    desc: "Dados e partilha",
+    icon: Shield,
+    href: null,
+  },
 ];
 
 export default function DefinicoesPage() {
@@ -56,20 +72,39 @@ export default function DefinicoesPage() {
 
       <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-surface shadow-card">
         <ul className="divide-y divide-zinc-200">
-          {rows.map(({ label, desc, icon: Icon }) => (
+          {rows.map(({ label, desc, icon: Icon, href }) => (
             <li key={label}>
-              <button
-                type="button"
-                className="flex w-full items-center gap-4 px-4 py-3.5 text-left transition active:bg-zinc-50"
-              >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600">
-                  <Icon className="h-4 w-4" aria-hidden />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-zinc-900">{label}</p>
-                  <p className="text-xs text-zinc-500">{desc}</p>
-                </div>
-              </button>
+              {href ? (
+                <Link
+                  href={href}
+                  className="flex w-full items-center gap-4 px-4 py-3.5 text-left transition active:bg-zinc-50"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600">
+                    <Icon className="h-4 w-4" aria-hidden />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-zinc-900">{label}</p>
+                    <p className="text-xs text-zinc-500">{desc}</p>
+                  </div>
+                  <ChevronRight
+                    className="h-5 w-5 shrink-0 text-zinc-400"
+                    aria-hidden
+                  />
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-4 px-4 py-3.5 text-left transition active:bg-zinc-50"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600">
+                    <Icon className="h-4 w-4" aria-hidden />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-zinc-900">{label}</p>
+                    <p className="text-xs text-zinc-500">{desc}</p>
+                  </div>
+                </button>
+              )}
             </li>
           ))}
         </ul>
