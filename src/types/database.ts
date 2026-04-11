@@ -122,6 +122,15 @@ export type GlucoseManualUnit = "mg_dl" | "mmol_l";
 
 export type GlucoseManualSource = "fingerstick" | "lab" | "other";
 
+/** Pontos CGM ingeridos a partir de snapshots LibreLinkUp (valor em mg/dL). */
+export type LibreGlucoseReading = {
+  id: string;
+  user_id: string;
+  measured_at: string;
+  value_mg_dl: number;
+  created_at: string;
+};
+
 export type GlucoseManualEntry = {
   id: string;
   user_id: string;

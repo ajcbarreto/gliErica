@@ -18,6 +18,7 @@ import { useAuthUser } from "@/hooks/useAuthUser";
 import { mealSlotLabelPt, type MealSlot } from "@/lib/meal-slots";
 import { usePullToRefresh } from "@/lib/use-pull-refresh";
 import type { MealLog } from "@/types/database";
+import { fetchLibreGlucoseAction } from "@/app/actions/libre-glucose";
 import { Activity, RefreshCw, X } from "lucide-react";
 import { Drawer as VaulDrawer } from "vaul";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
@@ -48,18 +49,6 @@ const trendLabelPt: Record<LibreTrend, string> = {
   SingleUp: "Subida forte",
   NotComputable: "Sem tendência",
 };
-
-type LibreGlucoseApiOk = {
-  snapshot: LibreGlucoseSnapshot;
-  stale?: boolean;
-  staleHint?: string;
-};
-
-function isLibreGlucoseApiOk(json: unknown): json is LibreGlucoseApiOk {
-  if (typeof json !== "object" || json === null) return false;
-  const s = (json as LibreGlucoseApiOk).snapshot;
-  return typeof s === "object" && s !== null && "current" in s && "chart24h" in s;
-}
 
 type ChartRow = { t: number; glucose: number };
 
@@ -215,18 +204,12 @@ export function LibreDashboardSection() {
       setRefreshing(true);
     }
     try {
-      const url = useFresh ? "/api/libre/glucose?fresh=1" : "/api/libre/glucose";
-      const res = await fetch(url, { cache: "no-store" });
-      const json: unknown = await res.json();
+      const json = await fetchLibreGlucoseAction({
+        bypassCache: useFresh,
+      });
 
-      if (!res.ok) {
-        const msg =
-          typeof json === "object" &&
-          json !== null &&
-          "error" in json &&
-          typeof (json as { error: unknown }).error === "string"
-            ? (json as { error: string }).error
-            : `Erro ${res.status}`;
+      if (!json.ok) {
+        const msg = json.error;
         if (hadData) {
           const limited =
             msg.includes("429") ||
@@ -245,18 +228,7 @@ export function LibreDashboardSection() {
         return;
       }
 
-      if (!isLibreGlucoseApiOk(json)) {
-        if (hadData) {
-          setStaleNote(
-            "Último valor disponível. Resposta inválida do servidor."
-          );
-          return;
-        }
-        setError("Resposta inválida do servidor.");
-        return;
-      }
-
-      setData(json.snapshot);
+      setData(json.data);
       setError(null);
       setStaleNote(
         json.stale

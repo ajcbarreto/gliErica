@@ -36,21 +36,24 @@ export default function GraficosPage() {
         </p>
       </Link>
 
-      <div className="rounded-2xl border border-zinc-200/90 bg-surface p-5 shadow-card">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/15 text-accent">
+      <Link
+        href="/graficos/libre"
+        className="group rounded-2xl border border-zinc-200/90 bg-surface p-5 shadow-card transition hover:border-accent/40 hover:shadow-md"
+      >
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/15 text-accent transition group-hover:bg-accent/25">
           <LineChart className="h-5 w-5" aria-hidden />
         </span>
-        <p className="mt-4 text-sm font-medium text-zinc-900">
-          Glicemia (LibreLinkUp)
+        <p className="mt-4 text-sm font-semibold text-zinc-900">
+          Glicemia — histórico Libre
         </p>
         <p className="mt-2 text-sm leading-relaxed text-zinc-600">
-          A curva das últimas horas e o estado atual estão no{" "}
-          <Link href="/dashboard" className="text-accent underline">
-            dashboard
-          </Link>
-          .
+          Curva com os pontos guardados (24 h a 14 dias). O estado actual e as
+          últimas horas continuam no dashboard (separado deste histórico).
         </p>
-      </div>
+        <p className="mt-3 text-xs font-medium text-accent">
+          Abrir histórico →
+        </p>
+      </Link>
 
       <div className="rounded-2xl border border-dashed border-zinc-200 bg-surface/50 p-4">
         <p className="text-xs leading-relaxed text-zinc-500">

@@ -1,6 +1,7 @@
 import { DashboardCarbSection } from "@/components/DashboardCarbSection";
 import { DashboardContextSection } from "@/components/DashboardContextSection";
 import { DashboardHypoHost } from "@/components/DashboardHypoHost";
+import { DashboardHypoLink } from "@/components/DashboardHypoLink";
 import { DashboardInsulinSection } from "@/components/DashboardInsulinSection";
 import { DashboardWaterSection } from "@/components/DashboardWaterSection";
 import { LibreDashboardSection } from "@/components/LibreDashboardSection";
@@ -11,9 +12,12 @@ export default function DashboardPage() {
     <DashboardHypoHost>
     <div className="flex flex-1 flex-col gap-5">
       <header className="space-y-1">
-        <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-          Hoje
-        </p>
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+            Hoje
+          </p>
+          <DashboardHypoLink />
+        </div>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
           Olá
         </h1>
