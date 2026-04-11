@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { getServerUserId } from "@/lib/auth/server-user";
 import { createClient } from "@/lib/supabase/server";
+import {
+  buildHealthReportPdf,
+  type LibrePoint,
+  type MealLogItemRow,
+} from "@/lib/export/health-report-pdf";
 import { mealSlotLabelPt, type MealSlot } from "@/lib/meal-slots";
 
 export const dynamic = "force-dynamic";
@@ -13,24 +17,8 @@ function csvEscape(s: string): string {
   return s;
 }
 
-function wrapPdfLines(text: string, maxChars: number): string[] {
-  const words = text.split(/\s+/);
-  const lines: string[] = [];
-  let cur = "";
-  for (const w of words) {
-    const next = cur ? `${cur} ${w}` : w;
-    if (next.length <= maxChars) cur = next;
-    else {
-      if (cur) lines.push(cur);
-      cur = w.length > maxChars ? `${w.slice(0, maxChars - 1)}…` : w;
-    }
-  }
-  if (cur) lines.push(cur);
-  return lines;
-}
-
 /**
- * GET ?format=csv|pdf — relatório resumido (últimos 14 dias) para partilhar com a equipa.
+ * GET ?format=csv|pdf — relatório (últimos 14 dias): refeições com itens, Libre, manual, insulina, água.
  */
 export async function GET(request: Request) {
   const userId = await getServerUserId();
@@ -40,7 +28,10 @@ export async function GET(request: Request) {
 
   const format = new URL(request.url).searchParams.get("format") ?? "csv";
   if (format !== "csv" && format !== "pdf") {
-    return NextResponse.json({ error: "format inválido (csv ou pdf)." }, { status: 400 });
+    return NextResponse.json(
+      { error: "format inválido (csv ou pdf)." },
+      { status: 400 }
+    );
   }
 
   const supabase = await createClient();
@@ -48,11 +39,11 @@ export async function GET(request: Request) {
     Date.now() - DAYS * 24 * 60 * 60 * 1000
   ).toISOString();
 
-  const [meals, manual, insulin, water] = await Promise.all([
+  const [meals, manual, insulin, water, libre] = await Promise.all([
     supabase
       .from("meal_logs")
       .select(
-        "logged_on, logged_at, created_at, meal_slot, grams_carbs, rapid_insulin_units, note"
+        "id, logged_on, logged_at, created_at, meal_slot, grams_carbs, rapid_insulin_units, note"
       )
       .eq("user_id", userId)
       .gte("created_at", since)
@@ -79,11 +70,22 @@ export async function GET(request: Request) {
       .gte("created_at", since)
       .order("created_at", { ascending: false })
       .limit(200),
+    supabase
+      .from("libre_glucose_readings")
+      .select("measured_at, value_mg_dl")
+      .eq("user_id", userId)
+      .gte("measured_at", since)
+      .order("measured_at", { ascending: true })
+      .limit(50_000),
   ]);
 
-  const errors = [meals.error, manual.error, insulin.error, water.error].filter(
-    Boolean
-  );
+  const errors = [
+    meals.error,
+    manual.error,
+    insulin.error,
+    water.error,
+    libre.error,
+  ].filter(Boolean);
   if (errors.length > 0) {
     return NextResponse.json(
       { error: errors[0]?.message ?? "Erro ao ler dados." },
@@ -91,18 +93,9 @@ export async function GET(request: Request) {
     );
   }
 
-  const lines: string[] = [];
-  lines.push(
-    [
-      "secção",
-      "data_hora",
-      "detalhe",
-      "nota",
-    ].join(",")
-  );
-
-  for (const m of meals.data ?? []) {
-    const row = m as {
+  const mealRows =
+    (meals.data ?? []) as Array<{
+      id: string;
       logged_on: string;
       logged_at: string | null;
       created_at: string;
@@ -110,22 +103,80 @@ export async function GET(request: Request) {
       grams_carbs: number;
       rapid_insulin_units: number | null;
       note: string | null;
-    };
-    const when = row.logged_at ?? row.created_at;
-    const slot = mealSlotLabelPt(row.meal_slot as MealSlot);
+    }>;
+
+  const itemsByMeal = new Map<string, MealLogItemRow[]>();
+  const mealIds = mealRows.map((m) => m.id).filter(Boolean);
+  if (mealIds.length > 0) {
+    const { data: itemRows, error: itemErr } = await supabase
+      .from("meal_log_items")
+      .select(
+        "meal_log_id, ingredient_label, grams, grams_carbs_line, sort_order"
+      )
+      .in("meal_log_id", mealIds);
+
+    if (itemErr) {
+      return NextResponse.json(
+        { error: itemErr.message ?? "Erro ao ler itens de refeição." },
+        { status: 500 }
+      );
+    }
+
+    for (const row of itemRows ?? []) {
+      const r = row as MealLogItemRow;
+      const list = itemsByMeal.get(r.meal_log_id) ?? [];
+      list.push(r);
+      itemsByMeal.set(r.meal_log_id, list);
+    }
+  }
+
+  const librePoints = (libre.data ?? []) as LibrePoint[];
+
+  const lines: string[] = [];
+  lines.push(["secção", "data_hora", "detalhe", "nota"].join(","));
+
+  for (const p of librePoints) {
+    lines.push(
+      [
+        "libre_cgm",
+        csvEscape(new Date(p.measured_at).toISOString()),
+        csvEscape(`${Number(p.value_mg_dl)} mg/dL`),
+        "",
+      ].join(",")
+    );
+  }
+
+  for (const m of mealRows) {
+    const when = m.logged_at ?? m.created_at;
+    const slot = mealSlotLabelPt(m.meal_slot as MealSlot);
     const ins =
-      row.rapid_insulin_units != null && row.rapid_insulin_units > 0
-        ? ` · ${row.rapid_insulin_units} UI rápida`
+      m.rapid_insulin_units != null && m.rapid_insulin_units > 0
+        ? ` · ${m.rapid_insulin_units} UI rápida`
         : "";
-    const detail = `${slot} · ${row.grams_carbs} g HC${ins}`;
+    const detail = `${slot} · ${m.grams_carbs} g HC${ins}`;
     lines.push(
       [
         "refeição",
         csvEscape(new Date(when).toISOString()),
         csvEscape(detail),
-        csvEscape((row.note ?? "").trim()),
+        csvEscape((m.note ?? "").trim()),
       ].join(",")
     );
+    const items = (itemsByMeal.get(m.id) ?? [])
+      .slice()
+      .sort((a, b) => a.sort_order - b.sort_order);
+    for (const it of items) {
+      lines.push(
+        [
+          "refeição_item",
+          csvEscape(new Date(when).toISOString()),
+          csvEscape(
+            `${it.ingredient_label}: ${it.grams} g → ${it.grams_carbs_line} g HC`
+          ),
+          "",
+        ].join(",")
+      );
+    }
   }
 
   for (const g of manual.data ?? []) {
@@ -193,95 +244,32 @@ export async function GET(request: Request) {
     });
   }
 
-  const pdf = await PDFDocument.create();
-  const font = await pdf.embedFont(StandardFonts.Helvetica);
-  let page = pdf.addPage([595.28, 841.89]);
-  const { height } = page.getSize();
-  let y = height - 50;
-  const margin = 50;
-  const fontSize = 10;
-  const lineH = 12;
+  const pdfBytes = await buildHealthReportPdf({
+    days: DAYS,
+    meals: mealRows,
+    itemsByMeal,
+    manual: (manual.data ?? []) as Array<{
+      measured_at: string;
+      value: number;
+      unit: string;
+      source: string;
+      note: string | null;
+    }>,
+    insulin: (insulin.data ?? []) as Array<{
+      created_at: string;
+      units: number;
+      kind: string;
+      note: string | null;
+    }>,
+    water: (water.data ?? []) as Array<{
+      created_at: string;
+      ml: number;
+      logged_on: string;
+    }>,
+    librePoints,
+  });
 
-  function ensureSpace(linesNeeded: number) {
-    if (y - linesNeeded * lineH < margin) {
-      page = pdf.addPage([595.28, 841.89]);
-      y = height - 50;
-    }
-  }
-
-  page.drawText(title, { x: margin, y, size: 14, font, color: rgb(0.1, 0.1, 0.1) });
-  y -= 24;
-  for (const ln of wrapPdfLines(headerNote, 85)) {
-    ensureSpace(1);
-    page.drawText(ln, { x: margin, y, size: 9, font, color: rgb(0.35, 0.35, 0.35) });
-    y -= lineH;
-  }
-  y -= 10;
-
-  const allText = [
-    "--- Refeições ---",
-    ...(meals.data ?? []).map((m) => {
-      const row = m as {
-        logged_at: string | null;
-        created_at: string;
-        meal_slot: string;
-        grams_carbs: number;
-        rapid_insulin_units: number | null;
-        note: string | null;
-      };
-      const when = row.logged_at ?? row.created_at;
-      const slot = mealSlotLabelPt(row.meal_slot as MealSlot);
-      const ins =
-        row.rapid_insulin_units != null && row.rapid_insulin_units > 0
-          ? ` · ${row.rapid_insulin_units} UI`
-          : "";
-      return `${new Date(when).toLocaleString("pt-PT")} · ${slot} · ${row.grams_carbs} g HC${ins}${row.note ? ` · ${row.note}` : ""}`;
-    }),
-    "--- Glicemia manual ---",
-    ...(manual.data ?? []).map((g) => {
-      const row = g as {
-        measured_at: string;
-        value: number;
-        unit: string;
-        source: string;
-        note: string | null;
-      };
-      const uLabel = row.unit === "mmol_l" ? "mmol/L" : "mg/dL";
-      return `${new Date(row.measured_at).toLocaleString("pt-PT")} · ${row.value} ${uLabel}${row.note ? ` · ${row.note}` : ""}`;
-    }),
-    "--- Insulina ---",
-    ...(insulin.data ?? []).map((i) => {
-      const row = i as {
-        created_at: string;
-        units: number;
-        kind: string;
-        note: string | null;
-      };
-      return `${new Date(row.created_at).toLocaleString("pt-PT")} · ${row.units} UI ${row.kind}${row.note ? ` · ${row.note}` : ""}`;
-    }),
-    "--- Água ---",
-    ...(water.data ?? []).map((w) => {
-      const row = w as { created_at: string; ml: number; logged_on: string };
-      return `${new Date(row.created_at).toLocaleString("pt-PT")} · ${row.ml} ml (${row.logged_on})`;
-    }),
-  ];
-
-  for (const block of allText) {
-    for (const ln of wrapPdfLines(block, 90)) {
-      ensureSpace(1);
-      page.drawText(ln, {
-        x: margin,
-        y,
-        size: fontSize,
-        font,
-        color: rgb(0.15, 0.15, 0.15),
-      });
-      y -= lineH;
-    }
-  }
-
-  const bytes = await pdf.save();
-  return new NextResponse(Buffer.from(bytes), {
+  return new NextResponse(Buffer.from(pdfBytes), {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",

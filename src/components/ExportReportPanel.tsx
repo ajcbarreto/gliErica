@@ -3,15 +3,16 @@
 import { FileDown } from "lucide-react";
 
 /**
- * Descarrega CSV ou PDF (últimos 14 dias) geridos por /api/export/health-report.
+ * Descarrega CSV ou PDF (últimos 14 dias): Libre, refeições com itens, glicemia manual, insulina, água.
  */
 export function ExportReportPanel() {
   return (
     <div className="rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card">
       <p className="text-sm font-medium text-zinc-900">Relatório para a consulta</p>
       <p className="mt-1 text-xs text-zinc-500">
-        Exporta refeições, glicemia manual, insulina e água dos últimos 14 dias.
-        Formato simples para enviares por email ou impressão.
+        Inclui curva Libre (sensor), refeições com linhas de alimentos, glicemia
+        manual, insulina e água. PDF com secções e gráfico; CSV com todas as
+        linhas.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         <a

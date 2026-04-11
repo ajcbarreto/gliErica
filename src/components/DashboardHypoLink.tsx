@@ -2,16 +2,14 @@
 
 import { useHypoEmergency } from "@/components/DashboardHypoHost";
 
-/**
- * Ligação discreta para o drawer SOS hipo (substitui o antigo botão flutuante).
- */
+/** Abre o drawer SOS hipo (substitui o antigo botão flutuante). */
 export function DashboardHypoLink() {
   const { openHypo } = useHypoEmergency();
   return (
     <button
       type="button"
       onClick={openHypo}
-      className="shrink-0 text-xs font-medium text-zinc-500 underline decoration-zinc-300 underline-offset-2 outline-none transition-colors hover:text-zinc-700 hover:decoration-zinc-400 focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+      className="shrink-0 rounded-lg border border-red-200/90 bg-red-50 px-2.5 py-1 text-sm font-semibold text-red-800 shadow-sm outline-none ring-red-100/80 transition hover:border-red-300 hover:bg-red-100/80 hover:text-red-900 focus-visible:ring-2 focus-visible:ring-red-400/45 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
     >
       Modo hipo
     </button>

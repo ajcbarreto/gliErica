@@ -30,28 +30,6 @@ export function LoginForm() {
       return;
     }
 
-    const { data: aal } =
-      await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (aal?.currentLevel === "aal1" && aal?.nextLevel === "aal2") {
-      const { data: fac } = await supabase.auth.mfa.listFactors();
-      const hasMfa = fac?.all.some((f) => f.status === "verified");
-      if (hasMfa) {
-        const next =
-          nextPath.startsWith("/") && nextPath !== "/login"
-            ? `?next=${encodeURIComponent(nextPath)}`
-            : "";
-        router.replace(`/login/mfa${next}`);
-        router.refresh();
-        return;
-      }
-      setError(
-        "Esta conta pede um segundo factor, mas não há nenhum configurado. Contacta o suporte ou recupera a conta."
-      );
-      await supabase.auth.signOut();
-      setLoading(false);
-      return;
-    }
-
     router.replace(nextPath.startsWith("/") ? nextPath : "/dashboard");
     router.refresh();
   }

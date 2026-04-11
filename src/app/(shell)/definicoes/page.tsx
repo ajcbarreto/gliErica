@@ -2,8 +2,6 @@ import Link from "next/link";
 import { Bell, ChevronRight, Shield, User } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
 import { AccountSettingsPanel } from "@/components/AccountSettingsPanel";
-import { PasskeySettingsPanel } from "@/components/PasskeySettingsPanel";
-import { TotpSettingsPanel } from "@/components/TotpSettingsPanel";
 import { ExportReportPanel } from "@/components/ExportReportPanel";
 import {
   CarbGoalPanel,
@@ -51,10 +49,6 @@ export default function DefinicoesPage() {
       </header>
 
       <AccountSettingsPanel />
-
-      <TotpSettingsPanel />
-
-      <PasskeySettingsPanel />
 
       <CarbGoalPanel />
 
