@@ -22,7 +22,7 @@ export default function RefeicoesRegistosPage() {
         </h1>
         <p className="text-sm text-zinc-600">
           Linhas de alimentos ou compostas, totais, sugestões do histórico e
-          insulina. O histórico recente aparece em cima; o ecrã completo está
+          insulina. O histórico recente aparece em baixo; o ecrã completo está
           em Histórico de refeições.
         </p>
       </header>

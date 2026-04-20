@@ -615,37 +615,6 @@ export function MealJournalClient() {
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-6">
-      <section className="rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 space-y-0.5">
-            <h2 className="text-sm font-semibold text-zinc-900">
-              Últimas refeições
-            </h2>
-            <p className="text-xs text-zinc-500">
-              Toca num registo para ver ingredientes e linhas; o ecrã completo
-              lista todo o histórico.
-            </p>
-          </div>
-          <Link
-            href="/refeicoes/historico"
-            className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent ring-1 ring-accent/25 transition hover:bg-accent/15 active:scale-[0.98]"
-          >
-            Histórico
-            <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-          </Link>
-        </div>
-        <MealHistoryList
-          logs={logs}
-          loading={loading}
-          onEdit={(row) => void startEdit(row)}
-          onDelete={(id) => void removeLog(id)}
-          deletingId={deletingId}
-          editBusy={loadingEdit}
-          limit={4}
-          density="compact"
-        />
-      </section>
-
       <form
         onSubmit={(e) => void handleSubmit(e)}
         className="min-w-0 max-w-full rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card"
@@ -918,6 +887,37 @@ export function MealJournalClient() {
           </button>
         </div>
       </form>
+
+      <section className="rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 space-y-0.5">
+            <h2 className="text-sm font-semibold text-zinc-900">
+              Últimas refeições
+            </h2>
+            <p className="text-xs text-zinc-500">
+              Toca num registo para ver ingredientes e linhas; o ecrã completo
+              lista todo o histórico.
+            </p>
+          </div>
+          <Link
+            href="/refeicoes/historico"
+            className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent ring-1 ring-accent/25 transition hover:bg-accent/15 active:scale-[0.98]"
+          >
+            Histórico
+            <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+          </Link>
+        </div>
+        <MealHistoryList
+          logs={logs}
+          loading={loading}
+          onEdit={(row) => void startEdit(row)}
+          onDelete={(id) => void removeLog(id)}
+          deletingId={deletingId}
+          editBusy={loadingEdit}
+          limit={4}
+          density="compact"
+        />
+      </section>
 
       <Drawer
         open={pickerOpen}

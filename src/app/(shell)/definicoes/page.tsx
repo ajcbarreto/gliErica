@@ -1,69 +1,80 @@
 import Link from "next/link";
-import { Bell, ChevronRight, Shield, User } from "lucide-react";
-import { AppLogo } from "@/components/AppLogo";
-import { AccountSettingsPanel } from "@/components/AccountSettingsPanel";
-import { ExportReportPanel } from "@/components/ExportReportPanel";
+import type { LucideIcon } from "lucide-react";
 import {
-  CarbGoalPanel,
-  CorrectionSensitivityPanel,
-  EmergencyContactPanel,
-  InsulinRulePanel,
-  LibreChartZonePanel,
-  WaterGoalPanel,
-} from "@/components/SettingsPanels";
+  Activity,
+  Bell,
+  ChevronRight,
+  FileDown,
+  KeyRound,
+  Shield,
+  User,
+} from "lucide-react";
+import { AppLogo } from "@/components/AppLogo";
 
-const rows = [
+type Row = {
+  label: string;
+  desc: string;
+  icon: LucideIcon;
+  href: `/definicoes${string}`;
+};
+
+const contaRows: Row[] = [
+  {
+    label: "Sessão",
+    desc: "Email e terminar sessão",
+    icon: KeyRound,
+    href: "/definicoes/conta",
+  },
   {
     label: "Perfil",
     desc: "Nome e dados pessoais",
     icon: User,
-    href: "/definicoes/perfil" as const,
+    href: "/definicoes/perfil",
   },
   {
     label: "Notificações",
     desc: "Lembretes e alertas",
     icon: Bell,
-    href: "/definicoes/notificacoes" as const,
+    href: "/definicoes/notificacoes",
   },
   {
     label: "Privacidade",
-    desc: "Dados e partilha",
+    desc: "Como tratamos os teus dados",
     icon: Shield,
-    href: "/definicoes/privacidade" as const,
+    href: "/definicoes/privacidade",
   },
 ];
 
-export default function DefinicoesPage() {
+const metasRows: Row[] = [
+  {
+    label: "Metas e terapêutica",
+    desc: "HC, água, insulina, gráfico e emergência",
+    icon: Activity,
+    href: "/definicoes/metas-e-terapia",
+  },
+];
+
+const dadosRows: Row[] = [
+  {
+    label: "Exportar relatório",
+    desc: "CSV ou PDF para a consulta",
+    icon: FileDown,
+    href: "/definicoes/dados",
+  },
+];
+
+function SettingsSection({
+  title,
+  rows,
+}: {
+  title: string;
+  rows: Row[];
+}) {
   return (
-    <div className="flex flex-1 flex-col gap-5">
-      <header className="space-y-1">
-        <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-          Conta
-        </p>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-          Definições
-        </h1>
-        <p className="text-sm text-zinc-600">
-          Personaliza a tua experiência na app.
-        </p>
-      </header>
-
-      <AccountSettingsPanel />
-
-      <CarbGoalPanel />
-
-      <WaterGoalPanel />
-
-      <InsulinRulePanel />
-
-      <LibreChartZonePanel />
-
-      <CorrectionSensitivityPanel />
-
-      <EmergencyContactPanel />
-
-      <ExportReportPanel />
-
+    <section className="space-y-2">
+      <h2 className="px-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
+        {title}
+      </h2>
       <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-surface shadow-card">
         <ul className="divide-y divide-zinc-200">
           {rows.map(({ label, desc, icon: Icon, href }) => (
@@ -88,8 +99,30 @@ export default function DefinicoesPage() {
           ))}
         </ul>
       </div>
+    </section>
+  );
+}
 
-      <div className="flex flex-col items-center gap-2">
+export default function DefinicoesPage() {
+  return (
+    <div className="flex flex-1 flex-col gap-6">
+      <header className="space-y-1">
+        <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+          GliErica
+        </p>
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+          Definições
+        </h1>
+        <p className="text-sm text-zinc-600">
+          Conta, metas de glicemia e exportação — cada área num sítio próprio.
+        </p>
+      </header>
+
+      <SettingsSection title="Conta" rows={contaRows} />
+      <SettingsSection title="Glicemia e metas" rows={metasRows} />
+      <SettingsSection title="Dados" rows={dadosRows} />
+
+      <div className="flex flex-col items-center gap-2 pt-2">
         <AppLogo className="h-12 w-12" />
         <p className="text-center text-xs text-zinc-600">
           GliErica by TeixeiraBarreto
