@@ -32,6 +32,10 @@ export type MealHistoryListProps = {
   limit?: number;
   /** `compact` para a pré-visualização no topo do registo */
   density?: "comfortable" | "compact";
+  /** Esconder editar/apagar (ex.: pré-visualização no dashboard) */
+  hideActions?: boolean;
+  /** Não repetir cabeçalho do dia (útil quando só há um dia) */
+  omitDayHeaders?: boolean;
 };
 
 export function MealHistoryList({
@@ -43,6 +47,8 @@ export function MealHistoryList({
   editBusy = false,
   limit,
   density = "comfortable",
+  hideActions = false,
+  omitDayHeaders = false,
 }: MealHistoryListProps) {
   const shown = typeof limit === "number" ? logs.slice(0, limit) : logs;
   const compact = density === "compact";
@@ -77,7 +83,8 @@ export function MealHistoryList({
     <ul className={compact ? "mt-2 flex flex-col gap-1.5" : "mt-3 flex flex-col gap-2"}>
       {shown.map((row, i) => {
         const prev = shown[i - 1];
-        const showDayHeader = i === 0 || row.logged_on !== prev?.logged_on;
+        const showDayHeader =
+          !omitDayHeaders && (i === 0 || row.logged_on !== prev?.logged_on);
         return (
           <li key={row.id} className="space-y-1.5">
             {showDayHeader && (
@@ -164,32 +171,34 @@ export function MealHistoryList({
                 />
                 <span className="sr-only">Ver detalhes da refeição</span>
               </Link>
-              <div
-                className={
-                  compact
-                    ? "flex shrink-0 gap-0.5 self-stretch border-l border-zinc-100 bg-surface px-1 py-2"
-                    : "flex shrink-0 gap-0.5 self-stretch border-l border-zinc-100 bg-surface px-1.5 py-2.5"
-                }
-              >
-                <button
-                  type="button"
-                  title="Editar registo"
-                  disabled={editBusy || deletingId === row.id}
-                  onClick={() => onEdit(row)}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 text-zinc-500 transition hover:border-accent/40 hover:bg-accent/10 hover:text-accent disabled:opacity-40 sm:h-9 sm:w-9 sm:rounded-xl"
+              {!hideActions && (
+                <div
+                  className={
+                    compact
+                      ? "flex shrink-0 gap-0.5 self-stretch border-l border-zinc-100 bg-surface px-1 py-2"
+                      : "flex shrink-0 gap-0.5 self-stretch border-l border-zinc-100 bg-surface px-1.5 py-2.5"
+                  }
                 >
-                  <Pencil className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                </button>
-                <button
-                  type="button"
-                  title="Apagar registo"
-                  disabled={deletingId === row.id}
-                  onClick={() => onDelete(row.id)}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 text-zinc-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:opacity-40 sm:h-9 sm:w-9 sm:rounded-xl"
-                >
-                  <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    title="Editar registo"
+                    disabled={editBusy || deletingId === row.id}
+                    onClick={() => onEdit(row)}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 text-zinc-500 transition hover:border-accent/40 hover:bg-accent/10 hover:text-accent disabled:opacity-40 sm:h-9 sm:w-9 sm:rounded-xl"
+                  >
+                    <Pencil className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    title="Apagar registo"
+                    disabled={deletingId === row.id}
+                    onClick={() => onDelete(row.id)}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 text-zinc-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:opacity-40 sm:h-9 sm:w-9 sm:rounded-xl"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  </button>
+                </div>
+              )}
             </div>
           </li>
         );

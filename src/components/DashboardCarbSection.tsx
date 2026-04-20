@@ -1,13 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthUser } from "@/hooks/useAuthUser";
 import { getLocalDateKey } from "@/lib/date";
 import { usePullToRefresh } from "@/lib/use-pull-refresh";
 import { CarbRing } from "@/components/CarbRing";
-import { ClipboardList } from "lucide-react";
 
 export function DashboardCarbSection() {
   const supabase = createClient();
@@ -58,29 +56,23 @@ export function DashboardCarbSection() {
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-200/90 bg-surface p-5 shadow-card">
-      <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between sm:gap-6">
+    <div className="rounded-2xl border border-zinc-200/90 bg-surface p-3 shadow-card">
+      <div className="flex items-center gap-3">
         {loading ? (
           <div
-            className="flex h-[168px] w-[168px] items-center justify-center rounded-full bg-zinc-50 text-sm text-zinc-500"
+            className="flex h-[104px] w-[104px] shrink-0 items-center justify-center rounded-full bg-zinc-50 text-xs text-zinc-500"
             aria-busy
           >
-            A carregar…
+            …
           </div>
         ) : (
-          <CarbRing consumed={consumed} goal={goal} />
+          <CarbRing consumed={consumed} goal={goal} size={104} stroke={10} />
         )}
-        <div className="flex w-full max-w-[220px] flex-col gap-3 sm:items-stretch">
-          <p className="text-center text-sm text-zinc-600 sm:text-left">
-            Hidratos consumidos hoje face à tua meta diária.
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium text-zinc-500">Hidratos hoje</p>
+          <p className="mt-0.5 text-sm leading-snug text-zinc-600">
+            Total face à meta diária — também nas refeições abaixo.
           </p>
-          <Link
-            href="/refeicoes/registos"
-            className="flex items-center justify-center gap-2 rounded-xl border border-accent/40 bg-surface px-4 py-3 text-sm font-semibold text-accent transition active:scale-[0.98] active:bg-accent/5"
-          >
-            <ClipboardList className="h-4 w-4" aria-hidden />
-            Registar refeição
-          </Link>
         </div>
       </div>
     </div>

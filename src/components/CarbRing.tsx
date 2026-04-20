@@ -61,17 +61,33 @@ export function CarbRing({
         </defs>
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+        <p
+          className={`font-medium uppercase tracking-wider text-zinc-500 ${
+            size <= 120 ? "text-[9px]" : "text-[10px]"
+          }`}
+        >
           Hidratos
         </p>
-        <p className="mt-0.5 text-2xl font-semibold tabular-nums text-zinc-900">
+        <p
+          className={`mt-0.5 font-semibold tabular-nums text-zinc-900 ${
+            size <= 120 ? "text-lg" : "text-2xl"
+          }`}
+        >
           {formatNum(consumed)}
         </p>
-        <p className="text-xs tabular-nums text-zinc-500">
+        <p
+          className={`tabular-nums text-zinc-500 ${
+            size <= 120 ? "text-[10px]" : "text-xs"
+          }`}
+        >
           / {formatNum(goal)} g
         </p>
         {ratio > 1 && (
-          <p className="mt-1 text-[10px] font-medium text-amber-700">
+          <p
+            className={`font-medium text-amber-700 ${
+              size <= 120 ? "mt-0.5 text-[9px]" : "mt-1 text-[10px]"
+            }`}
+          >
             Acima da meta
           </p>
         )}

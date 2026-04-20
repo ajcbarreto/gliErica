@@ -10,7 +10,15 @@ import { Droplets, Undo2 } from "lucide-react";
 
 const QUICK_ML = [200, 250, 500] as const;
 
-export function DashboardWaterSection() {
+type DashboardWaterSectionProps = {
+  embedded?: boolean;
+  onAfterChange?: () => void;
+};
+
+export function DashboardWaterSection({
+  embedded = false,
+  onAfterChange,
+}: DashboardWaterSectionProps) {
   const supabase = createClient();
   const { userId, loading: authLoading } = useAuthUser();
   const [goalMl, setGoalMl] = useState(2000);
@@ -85,6 +93,7 @@ export function DashboardWaterSection() {
       return;
     }
     void refresh();
+    onAfterChange?.();
   }
 
   async function undoLast() {
@@ -97,7 +106,10 @@ export function DashboardWaterSection() {
       .eq("id", lastEntryId);
     setAdding(false);
     if (error) setMsg(error.message);
-    else void refresh();
+    else {
+      void refresh();
+      onAfterChange?.();
+    }
   }
 
   function submitCustom(e: React.FormEvent) {
@@ -121,8 +133,12 @@ export function DashboardWaterSection() {
 
   const pct = goalMl > 0 ? Math.min(100, Math.round((totalMl / goalMl) * 100)) : 0;
 
+  const shellClass = embedded
+    ? "rounded-xl border border-zinc-100 bg-zinc-50/50 p-3"
+    : "rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card";
+
   return (
-    <section className="rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card">
+    <section className={shellClass}>
       <div className="flex items-start gap-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent">
           <Droplets className="h-5 w-5" aria-hidden />
@@ -154,7 +170,9 @@ export function DashboardWaterSection() {
                 />
               </div>
               <p className="mt-1 text-[11px] text-zinc-500">
-                Meta em Definições · toca para registar copos ou garrafas
+                {embedded
+                  ? "Meta nas Definições."
+                  : "Meta em Definições · toca para registar copos ou garrafas"}
               </p>
             </>
           )}

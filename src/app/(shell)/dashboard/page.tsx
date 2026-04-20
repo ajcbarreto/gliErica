@@ -2,9 +2,9 @@ import { DashboardCarbSection } from "@/components/DashboardCarbSection";
 import { DashboardContextSection } from "@/components/DashboardContextSection";
 import { DashboardHypoHost } from "@/components/DashboardHypoHost";
 import { DashboardHypoLink } from "@/components/DashboardHypoLink";
-import { DashboardInsulinSection } from "@/components/DashboardInsulinSection";
 import { DashboardPrimaryMealCta } from "@/components/DashboardPrimaryMealCta";
-import { DashboardWaterSection } from "@/components/DashboardWaterSection";
+import { DashboardQuickLogBar } from "@/components/DashboardQuickLogBar";
+import { DashboardTodayMealsSection } from "@/components/DashboardTodayMealsSection";
 import { LibreDashboardSection } from "@/components/LibreDashboardSection";
 import { PostMealRiseWatcher } from "@/components/PostMealRiseWatcher";
 
@@ -35,9 +35,9 @@ export default function DashboardPage() {
 
       <DashboardCarbSection />
 
-      <DashboardInsulinSection />
+      <DashboardTodayMealsSection />
 
-      <DashboardWaterSection />
+      <DashboardQuickLogBar />
 
       <DashboardContextSection />
     </div>

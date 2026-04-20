@@ -6,6 +6,12 @@ import { useAuthUser } from "@/hooks/useAuthUser";
 import { getLocalDateKey } from "@/lib/date";
 import { usePullToRefresh } from "@/lib/use-pull-refresh";
 import type { InsulinKind } from "@/types/database";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Syringe, Undo2 } from "lucide-react";
 
 const QUICK_UNITS = [2, 4, 6, 8] as const;
@@ -45,7 +51,16 @@ function comparisonHint(
   return "A insulina rápida registada está próxima do indicado pela tua regra e dos HC de hoje (só para reflexão).";
 }
 
-export function DashboardInsulinSection() {
+type DashboardInsulinSectionProps = {
+  /** Dentro do painel “+” (sem cartão duplo) */
+  embedded?: boolean;
+  onAfterChange?: () => void;
+};
+
+export function DashboardInsulinSection({
+  embedded = false,
+  onAfterChange,
+}: DashboardInsulinSectionProps) {
   const supabase = createClient();
   const { userId, loading: authLoading } = useAuthUser();
   const [kind, setKind] = useState<InsulinKind>("rapid");
@@ -63,6 +78,16 @@ export function DashboardInsulinSection() {
   const [adding, setAdding] = useState(false);
   const [customUnits, setCustomUnits] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editRow, setEditRow] = useState<{
+    id: string;
+    units: number;
+    kind: InsulinKind;
+    created_at: string;
+  } | null>(null);
+  const [editUnitsStr, setEditUnitsStr] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+  const [editMsg, setEditMsg] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setMsg(null);
@@ -118,7 +143,7 @@ export function DashboardInsulinSection() {
     setMealRapidSum(Math.round(mealRapid * 10) / 10);
     setCorrectionSum(Math.round(correction * 10) / 10);
     setBasalSum(Math.round(b * 10) / 10);
-    setEntries(list.slice(0, 8));
+    setEntries(list);
     setLastEntryId(list[0]?.id ?? null);
 
     const carbSum = (carbRows ?? []).reduce(
@@ -168,6 +193,7 @@ export function DashboardInsulinSection() {
       return;
     }
     void refresh();
+    onAfterChange?.();
   }
 
   async function undoLast() {
@@ -180,7 +206,49 @@ export function DashboardInsulinSection() {
       .eq("id", lastEntryId);
     setAdding(false);
     if (error) setMsg(error.message);
-    else void refresh();
+    else {
+      void refresh();
+      onAfterChange?.();
+    }
+  }
+
+  function openEdit(e: {
+    id: string;
+    units: number;
+    kind: InsulinKind;
+    created_at: string;
+  }) {
+    setEditRow(e);
+    setEditUnitsStr(String(e.units).replace(".", ","));
+    setEditOpen(true);
+    setEditMsg(null);
+    setMsg(null);
+  }
+
+  async function saveEdit() {
+    if (!userId || !editRow) return;
+    const v = parseFloat(editUnitsStr.replace(",", "."));
+    if (Number.isNaN(v) || v <= 0) {
+      setEditMsg("Indica unidades válidas (> 0).");
+      return;
+    }
+    const rounded = Math.round(v * 10) / 10;
+    setEditSaving(true);
+    setEditMsg(null);
+    const { error } = await supabase
+      .from("insulin_entries")
+      .update({ units: rounded })
+      .eq("id", editRow.id)
+      .eq("user_id", userId);
+    setEditSaving(false);
+    if (error) {
+      setEditMsg(error.message);
+      return;
+    }
+    setEditOpen(false);
+    setEditRow(null);
+    void refresh();
+    onAfterChange?.();
   }
 
   function submitCustom(e: React.FormEvent) {
@@ -211,8 +279,14 @@ export function DashboardInsulinSection() {
       ? comparisonHint(mealRapidSum, suggested, carbsDay)
       : null;
 
+  const shownEntries = embedded ? entries : entries.slice(0, 8);
+
+  const shellClass = embedded
+    ? "rounded-xl border border-zinc-100 bg-zinc-50/50 p-3"
+    : "rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card";
+
   return (
-    <section className="rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card">
+    <section className={shellClass}>
       <div className="flex items-start gap-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
           <Syringe className="h-5 w-5" aria-hidden />
@@ -346,25 +420,32 @@ export function DashboardInsulinSection() {
             </button>
           </form>
 
-          {entries.length > 0 && (
+          {shownEntries.length > 0 && (
             <ul className="space-y-1 border-t border-zinc-100 pt-2 text-[11px] text-zinc-500">
-              {entries.map((e) => (
-                <li
-                  key={e.id}
-                  className="flex justify-between gap-2 tabular-nums"
-                >
-                  <span>
-                    {formatTime(e.created_at)} · {kindLabelPt(e.kind)}
-                  </span>
-                  <span className="font-medium text-zinc-700">{e.units} UI</span>
+              {shownEntries.map((e) => (
+                <li key={e.id} className="tabular-nums">
+                  <button
+                    type="button"
+                    title="Corrigir unidades"
+                    onClick={() => openEdit(e)}
+                    className="flex w-full items-center justify-between gap-2 rounded-lg px-1 py-0.5 text-left transition hover:bg-zinc-100/80"
+                  >
+                    <span className="min-w-0 truncate">
+                      {formatTime(e.created_at)} · {kindLabelPt(e.kind)}
+                    </span>
+                    <span className="shrink-0 font-medium text-zinc-700">
+                      {e.units} UI
+                    </span>
+                  </button>
                 </li>
               ))}
             </ul>
           )}
 
           <p className="text-[10px] leading-relaxed text-zinc-400">
-            Informação não substitui ajustes médicos. Usa a curva Libre e sintomas
-            em conjunto com a equipa de saúde.
+            {embedded
+              ? "Orientação informativa — não substitui a equipa de saúde."
+              : "Informação não substitui ajustes médicos. Usa a curva Libre e sintomas em conjunto com a equipa de saúde."}
           </p>
 
           {msg && (
@@ -374,6 +455,62 @@ export function DashboardInsulinSection() {
           )}
         </div>
       )}
+
+      <Dialog
+        open={editOpen}
+        onOpenChange={(o) => {
+          if (!o) {
+            setEditOpen(false);
+            setEditMsg(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-[min(calc(100vw-1.5rem),22rem)]">
+          <DialogTitle className="text-base">Ajustar unidades</DialogTitle>
+          <DialogDescription className="text-xs text-zinc-600">
+            {editRow
+              ? `${kindLabelPt(editRow.kind)} · ${formatTime(editRow.created_at)}`
+              : ""}
+          </DialogDescription>
+          <div className="mt-2 space-y-2">
+            <label
+              htmlFor="insulin-edit-units"
+              className="text-[11px] font-medium text-zinc-500"
+            >
+              Unidades (UI)
+            </label>
+            <input
+              id="insulin-edit-units"
+              inputMode="decimal"
+              value={editUnitsStr}
+              onChange={(e) => setEditUnitsStr(e.target.value)}
+              className="w-full rounded-xl border border-zinc-200 bg-canvas px-3 py-2 text-sm tabular-nums text-zinc-900 outline-none ring-accent/30 focus:ring-2"
+            />
+            {editMsg ? (
+              <p className="text-xs text-red-600" role="alert">
+                {editMsg}
+              </p>
+            ) : null}
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                className="rounded-xl px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-100"
+                onClick={() => setEditOpen(false)}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={editSaving}
+                className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-accent-foreground disabled:opacity-50"
+                onClick={() => void saveEdit()}
+              >
+                Guardar
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
