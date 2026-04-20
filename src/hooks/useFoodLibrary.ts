@@ -30,6 +30,8 @@ export function useFoodLibrary() {
 
   const [newName, setNewName] = useState("");
   const [newCarbs, setNewCarbs] = useState("");
+  const [newBrand, setNewBrand] = useState("");
+  const [newRetailer, setNewRetailer] = useState("");
   const [newFavorite, setNewFavorite] = useState(false);
   const [adding, setAdding] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -85,7 +87,11 @@ export function useFoodLibrary() {
     return foods.filter((f) => {
       if (favoritesOnly && !f.is_favorite) return false;
       if (!q) return true;
-      return f.name.toLowerCase().includes(q);
+      const meta = `${f.brand ?? ""} ${f.retailer ?? ""}`.toLowerCase();
+      return (
+        f.name.toLowerCase().includes(q) ||
+        meta.includes(q)
+      );
     });
   }, [foods, search, favoritesOnly]);
 
@@ -107,6 +113,11 @@ export function useFoodLibrary() {
       return;
     }
 
+    const brandNorm =
+      newBrand.trim() === "" ? null : newBrand.trim();
+    const retailerNorm =
+      newRetailer.trim() === "" ? null : newRetailer.trim();
+
     if (!navigator.onLine) {
       const clientId = makeTempFoodId();
       const temp = optimisticFood(
@@ -114,7 +125,9 @@ export function useFoodLibrary() {
         clientId,
         newName.trim(),
         carbs,
-        newFavorite
+        newFavorite,
+        brandNorm,
+        retailerNorm
       );
       const next = sortFoods([...foods, temp]);
       setFoods(next);
@@ -128,10 +141,14 @@ export function useFoodLibrary() {
           name: newName.trim(),
           carbs_per_100g: carbs,
           is_favorite: newFavorite,
+          brand: brandNorm,
+          retailer: retailerNorm,
         },
       });
       setNewName("");
       setNewCarbs("");
+      setNewBrand("");
+      setNewRetailer("");
       setNewFavorite(false);
       return;
     }
@@ -142,6 +159,8 @@ export function useFoodLibrary() {
       name: newName.trim(),
       carbs_per_100g: carbs,
       is_favorite: newFavorite,
+      brand: brandNorm,
+      retailer: retailerNorm,
     });
     setAdding(false);
 
@@ -152,6 +171,8 @@ export function useFoodLibrary() {
 
     setNewName("");
     setNewCarbs("");
+    setNewBrand("");
+    setNewRetailer("");
     setNewFavorite(false);
     void loadFoods();
   }
@@ -259,12 +280,16 @@ export function useFoodLibrary() {
   function applyCatalogFood(name: string, carbs: number) {
     setNewName(name);
     setNewCarbs(String(carbs));
+    setNewBrand("");
+    setNewRetailer("");
     setFormError(null);
   }
 
   function applyOffProduct(name: string, carbs: number | null) {
     setNewName(name);
     setNewCarbs(carbs !== null ? String(carbs) : "");
+    setNewBrand("");
+    setNewRetailer("");
     setFormError(
       carbs === null
         ? "Sem hidratos por 100 g na Open Food Facts — confere o rótulo e preenche o HC manualmente."
@@ -287,6 +312,10 @@ export function useFoodLibrary() {
     setNewName,
     newCarbs,
     setNewCarbs,
+    newBrand,
+    setNewBrand,
+    newRetailer,
+    setNewRetailer,
     newFavorite,
     setNewFavorite,
     adding,

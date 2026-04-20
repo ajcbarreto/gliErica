@@ -47,6 +47,8 @@ export async function flushPendingSyncQueue(): Promise<FlushResult> {
               name: op.payload.name,
               carbs_per_100g: op.payload.carbs_per_100g,
               is_favorite: op.payload.is_favorite,
+              brand: op.payload.brand ?? null,
+              retailer: op.payload.retailer ?? null,
             })
             .select("*")
             .single();

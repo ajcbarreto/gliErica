@@ -4,6 +4,10 @@ export type Food = {
   name: string;
   carbs_per_100g: number;
   is_favorite: boolean;
+  /** Marca comercial (opcional). */
+  brand: string | null;
+  /** Loja ou cadeia, ex. Continente, Mercadona (opcional). */
+  retailer: string | null;
   created_at: string;
 };
 

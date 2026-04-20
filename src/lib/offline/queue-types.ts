@@ -9,6 +9,9 @@ export type QueuedFoodInsert = {
     name: string;
     carbs_per_100g: number;
     is_favorite: boolean;
+    /** Ausentes em operações antigas na fila local. */
+    brand?: string | null;
+    retailer?: string | null;
   };
 };
 
@@ -85,7 +88,9 @@ export function optimisticFood(
   clientId: string,
   name: string,
   carbs_per_100g: number,
-  is_favorite: boolean
+  is_favorite: boolean,
+  brand: string | null,
+  retailer: string | null
 ): Food {
   return {
     id: clientId,
@@ -93,6 +98,8 @@ export function optimisticFood(
     name,
     carbs_per_100g,
     is_favorite,
+    brand,
+    retailer,
     created_at: new Date().toISOString(),
   };
 }

@@ -5,7 +5,7 @@ import { mapOpenFoodFactsProduct } from "@/lib/open-food-facts/map-product";
 export const dynamic = "force-dynamic";
 
 const FIELDS =
-  "code,product_name,product_name_pt,product_name_en,brands,nutriments,nutrition_data";
+  "code,product_name,product_name_pt,product_name_en,brands,nutriments,nutrition_data,image_front_small_url,image_front_thumb_url,image_front_url";
 
 /**
  * GET ?code=código_de_barras (8–14 dígitos)

@@ -3,6 +3,8 @@ export type OpenFoodFactsHit = {
   name: string;
   brand: string | null;
   carbs_per_100g: number | null;
+  /** URL da imagem (frente), quando existir na base OFF. */
+  image_url: string | null;
 };
 
 function pickStr(v: unknown): string | null {
@@ -39,5 +41,10 @@ export function mapOpenFoodFactsProduct(raw: Record<string, unknown>): OpenFoodF
   const nutriments = raw.nutriments as Record<string, unknown> | undefined;
   const carbs_per_100g = readCarbs100g(nutriments);
 
-  return { code, name, brand, carbs_per_100g };
+  const image_url =
+    pickStr(raw.image_front_small_url) ||
+    pickStr(raw.image_front_thumb_url) ||
+    pickStr(raw.image_front_url);
+
+  return { code, name, brand, carbs_per_100g, image_url };
 }

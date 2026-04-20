@@ -7,6 +7,7 @@ import { useAuthUser } from "@/hooks/useAuthUser";
 import { getLocalDateKey } from "@/lib/date";
 import { carbsFromFoodGrams, roundCarbs } from "@/lib/carb-math";
 import type { CompositeMeal, Food } from "@/types/database";
+import { foodIngredientLabel, foodMetaLine } from "@/lib/food-meta";
 import { ArrowLeft, Layers, Plus, Star } from "lucide-react";
 import { usePullToRefresh } from "@/lib/use-pull-refresh";
 
@@ -284,6 +285,7 @@ export function CompositeMealBuilder() {
             {foods.map((f) => {
               const on = f.id in selected;
               const g = selected[f.id] ?? 100;
+              const meta = foodMetaLine(f);
               return (
                 <li
                   key={f.id}
@@ -296,7 +298,16 @@ export function CompositeMealBuilder() {
                       onChange={() => toggleFood(f.id)}
                       className="rounded border-zinc-300 bg-white text-accent focus:ring-accent"
                     />
-                    <span className="truncate text-sm text-zinc-900">{f.name}</span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm text-zinc-900">
+                        {f.name}
+                      </span>
+                      {meta && (
+                        <span className="block truncate text-[11px] text-zinc-500">
+                          {meta}
+                        </span>
+                      )}
+                    </span>
                   </label>
                   {on && (
                     <div className="flex items-center gap-1.5">
@@ -398,7 +409,8 @@ export function CompositeMealBuilder() {
                       const f = foodsById[i.food_id];
                       return (
                         <li key={`${m.id}-${i.food_id}`}>
-                          {f?.name ?? "Alimento"} — {i.grams} g
+                          {(f ? foodIngredientLabel(f) : "Alimento")} —{" "}
+                          {i.grams} g
                         </li>
                       );
                     })}

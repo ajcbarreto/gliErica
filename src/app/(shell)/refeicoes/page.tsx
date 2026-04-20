@@ -5,6 +5,7 @@ import {
   ChevronRight,
   ClipboardList,
   Compass,
+  History,
   Layers,
 } from "lucide-react";
 
@@ -16,6 +17,14 @@ const links = [
       "Compositor (alimentos / compostas), sugestões do histórico, HC e insulina.",
     Icon: ClipboardList,
     highlight: true,
+  },
+  {
+    href: "/refeicoes/historico",
+    title: "Histórico de refeições",
+    description:
+      "Lista por dia com HC, insulina e notas — ecrã dedicado para rever tudo.",
+    Icon: History,
+    highlight: false,
   },
   {
     href: "/biblioteca/meus-alimentos",

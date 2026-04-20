@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useFoodLibrary } from "@/hooks/useFoodLibrary";
 import { usePullToRefresh } from "@/lib/use-pull-refresh";
 import { roundCarbs, carbsFromFoodGrams } from "@/lib/carb-math";
+import { foodMetaLine } from "@/lib/food-meta";
 import {
   ArrowLeft,
   Compass,
@@ -138,7 +139,9 @@ export function MyFoodsPanel() {
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
-          {filtered.map((food) => (
+          {filtered.map((food) => {
+            const meta = foodMetaLine(food);
+            return (
             <li
               key={food.id}
               className="flex items-center gap-2 rounded-2xl border border-zinc-200/90 bg-surface p-3 shadow-card"
@@ -171,6 +174,9 @@ export function MyFoodsPanel() {
                     </span>
                   )}
                 </p>
+                {meta && (
+                  <p className="truncate text-xs text-zinc-500">{meta}</p>
+                )}
                 <p className="text-xs text-zinc-500">
                   {food.carbs_per_100g} g HC / 100 g
                 </p>
@@ -187,7 +193,8 @@ export function MyFoodsPanel() {
                 Registar hoje
               </button>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
 
@@ -221,7 +228,14 @@ export function MyFoodsPanel() {
                   <X className="h-5 w-5" />
                 </button>
               </div>
-              <p className="mb-3 text-sm text-zinc-600">{logFood.name}</p>
+              <div className="mb-3 text-sm text-zinc-600">
+                <p className="font-medium text-zinc-900">{logFood.name}</p>
+                {foodMetaLine(logFood) && (
+                  <p className="mt-0.5 text-xs text-zinc-500">
+                    {foodMetaLine(logFood)}
+                  </p>
+                )}
+              </div>
               <form
                 onSubmit={(e) => void submitLogFood(e)}
                 className="space-y-4"

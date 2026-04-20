@@ -1,7 +1,7 @@
 import type { Food } from "@/types/database";
 
 function cacheKey(userId: string) {
-  return `glierica_foods_cache_v1_${userId}`;
+  return `glierica_foods_cache_v2_${userId}`;
 }
 
 export function saveFoodsCache(userId: string, foods: Food[]) {
@@ -22,7 +22,13 @@ export function loadFoodsCache(userId: string): Food[] | null {
     const raw = localStorage.getItem(cacheKey(userId));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as { foods?: Food[] };
-    return parsed.foods ?? null;
+    const foods = parsed.foods;
+    if (!foods) return null;
+    return foods.map((f) => ({
+      ...f,
+      brand: f.brand ?? null,
+      retailer: f.retailer ?? null,
+    }));
   } catch {
     return null;
   }

@@ -1,9 +1,8 @@
-import { Suspense } from "react";
-import { MealJournalClient } from "@/components/MealJournalClient";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
+import { MealHistoryPageClient } from "@/components/MealHistoryPageClient";
 
-export default function RefeicoesRegistosPage() {
+export default function RefeicoesHistoricoPage() {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-5">
       <header className="space-y-1">
@@ -18,22 +17,14 @@ export default function RefeicoesRegistosPage() {
           Diário
         </p>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-          Registo de refeições
+          Histórico de refeições
         </h1>
         <p className="text-sm text-zinc-600">
-          Linhas de alimentos ou compostas, totais, sugestões do histórico e
-          insulina. O histórico recente aparece em cima; o ecrã completo está
-          em Histórico de refeições.
+          Todos os registos por dia, com hidratos, insulina rápida e notas.
         </p>
       </header>
 
-      <Suspense
-        fallback={
-          <p className="text-sm text-zinc-500">A carregar registo…</p>
-        }
-      >
-        <MealJournalClient />
-      </Suspense>
+      <MealHistoryPageClient />
     </div>
   );
 }

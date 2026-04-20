@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Drawer as VaulDrawer } from "vaul";
 import { createClient } from "@/lib/supabase/client";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
@@ -13,7 +15,10 @@ import {
 } from "@/lib/date";
 import { MEAL_SLOTS, mealSlotLabelPt, type MealSlot } from "@/lib/meal-slots";
 import { carbsFromFoodGrams, roundCarbs } from "@/lib/carb-math";
+import { foodIngredientLabel, foodMetaLine } from "@/lib/food-meta";
 import { usePullToRefresh } from "@/lib/use-pull-refresh";
+import { useMealLogs } from "@/hooks/useMealLogs";
+import { MealHistoryList } from "@/components/MealHistoryList";
 import type {
   CompositeMeal,
   Food,
@@ -22,29 +27,13 @@ import type {
 } from "@/types/database";
 import {
   CalendarDays,
-  ChevronDown,
+  ChevronRight,
   Layers,
-  Pencil,
   Plus,
   Search,
   Trash2,
   X,
 } from "lucide-react";
-
-function formatDayPt(isoDate: string) {
-  return new Date(`${isoDate}T12:00:00`).toLocaleDateString("pt-PT", {
-    weekday: "long",
-    day: "numeric",
-    month: "short",
-  });
-}
-
-function formatTimePt(iso: string) {
-  return new Date(iso).toLocaleTimeString("pt-PT", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 function normNote(s: string) {
   return s
@@ -68,9 +57,12 @@ function lineKey() {
 
 export function MealJournalClient() {
   const supabase = createClient();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const editFromQuery = searchParams.get("edit");
+  const lastOpenedEdit = useRef<string | null>(null);
   const { userId, loading: authLoading } = useAuthUser();
-  const [logs, setLogs] = useState<MealLog[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { logs, loading, reload } = useMealLogs(userId);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -124,30 +116,6 @@ export function MealJournalClient() {
               )) / icrGramsPerUnit
         )
       : null;
-
-  const load = useCallback(async () => {
-    if (!userId) {
-      setLogs([]);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("meal_logs")
-      .select("*")
-      .eq("user_id", userId)
-      .order("logged_at", { ascending: false })
-      .order("created_at", { ascending: false })
-      .limit(200);
-
-    setLoading(false);
-    if (error) {
-      setLogs([]);
-      return;
-    }
-    setLogs((data ?? []) as MealLog[]);
-  }, [supabase, userId]);
 
   const loadFoodsAndComposites = useCallback(async () => {
     if (!userId) return;
@@ -220,15 +188,11 @@ export function MealJournalClient() {
   }, [supabase, userId]);
 
   usePullToRefresh(() => {
-    void load();
+    void reload();
     void loadFoodsAndComposites();
     void loadSuggestions();
     void loadProfileIcr();
   });
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   useEffect(() => {
     void loadFoodsAndComposites();
@@ -308,7 +272,7 @@ export function MealJournalClient() {
         key: lineKey(),
         foodId: food.id.startsWith("temp-") ? null : food.id,
         compositeMealId: null,
-        label: food.name,
+        label: foodIngredientLabel(food),
         grams: g,
         carbsLine,
       },
@@ -322,7 +286,7 @@ export function MealJournalClient() {
     const newLines: MealLine[] = [];
     for (const it of items) {
       const f = foodsById[it.food_id];
-      const label = f?.name ?? "Alimento";
+      const label = f ? foodIngredientLabel(f) : "Alimento";
       const g = Math.max(1, it.grams);
       const cpg = f?.carbs_per_100g ?? 0;
       const carbsLine = roundCarbs(carbsFromFoodGrams(g, cpg));
@@ -390,53 +354,80 @@ export function MealJournalClient() {
     setFormError(null);
   }
 
-  async function startEdit(row: MealLog) {
-    setFormError(null);
-    setEditingId(row.id);
-    setSlot(row.meal_slot as MealSlot);
-    setLoggedOn(row.logged_on);
-    setLoggedTime(parseIsoToLocalTimeHm(row.logged_at ?? row.created_at));
-    setNote(row.note ?? "");
-    setInsulinStr(
-      row.rapid_insulin_units != null && row.rapid_insulin_units > 0
-        ? String(row.rapid_insulin_units)
-        : ""
-    );
-    setLoadingEdit(true);
-    const { data: itemRows } = await supabase
-      .from("meal_log_items")
-      .select("*")
-      .eq("meal_log_id", row.id)
-      .order("sort_order", { ascending: true });
-    setLoadingEdit(false);
-
-    const items = (itemRows ?? []) as MealLogItem[];
-    if (items.length > 0) {
-      setLines(
-        items.map((it) => ({
-          key: it.id,
-          foodId: it.food_id,
-          compositeMealId: it.composite_meal_id,
-          label: it.ingredient_label,
-          grams: it.grams,
-          carbsLine: it.grams_carbs_line,
-        }))
+  const startEdit = useCallback(
+    async (row: MealLog) => {
+      setFormError(null);
+      setEditingId(row.id);
+      setSlot(row.meal_slot as MealSlot);
+      setLoggedOn(row.logged_on);
+      setLoggedTime(parseIsoToLocalTimeHm(row.logged_at ?? row.created_at));
+      setNote(row.note ?? "");
+      setInsulinStr(
+        row.rapid_insulin_units != null && row.rapid_insulin_units > 0
+          ? String(row.rapid_insulin_units)
+          : ""
       );
-      setGramsStr("");
-    } else {
-      setLines([]);
-      setGramsStr(row.grams_carbs > 0 ? String(row.grams_carbs) : "");
-    }
+      setLoadingEdit(true);
+      const { data: itemRows } = await supabase
+        .from("meal_log_items")
+        .select("*")
+        .eq("meal_log_id", row.id)
+        .order("sort_order", { ascending: true });
+      setLoadingEdit(false);
 
-    if (typeof window !== "undefined") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      const items = (itemRows ?? []) as MealLogItem[];
+      if (items.length > 0) {
+        setLines(
+          items.map((it) => ({
+            key: it.id,
+            foodId: it.food_id,
+            compositeMealId: it.composite_meal_id,
+            label: it.ingredient_label,
+            grams: it.grams,
+            carbsLine: it.grams_carbs_line,
+          }))
+        );
+        setGramsStr("");
+      } else {
+        setLines([]);
+        setGramsStr(row.grams_carbs > 0 ? String(row.grams_carbs) : "");
+      }
+
+      if (typeof window !== "undefined") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    },
+    [supabase]
+  );
+
+  useEffect(() => {
+    if (!editFromQuery) {
+      lastOpenedEdit.current = null;
+      return;
     }
-  }
+    if (!userId || loading) return;
+    const row = logs.find((l) => l.id === editFromQuery);
+    if (!row) {
+      if (!loading) {
+        router.replace("/refeicoes/registos", { scroll: false });
+      }
+      return;
+    }
+    if (lastOpenedEdit.current === editFromQuery) return;
+    lastOpenedEdit.current = editFromQuery;
+    void (async () => {
+      await startEdit(row);
+      router.replace("/refeicoes/registos", { scroll: false });
+    })();
+  }, [editFromQuery, userId, loading, logs, router, startEdit]);
 
   const filteredPickerFoods = useMemo(() => {
     const q = pickerSearch.trim().toLowerCase();
     if (!q) return foods;
-    return foods.filter((f) => f.name.toLowerCase().includes(q));
+    return foods.filter((f) => {
+      const meta = `${f.brand ?? ""} ${f.retailer ?? ""}`.toLowerCase();
+      return f.name.toLowerCase().includes(q) || meta.includes(q);
+    });
   }, [foods, pickerSearch]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -512,7 +503,7 @@ export function MealJournalClient() {
       }
 
       resetAfterSave();
-      void load();
+      void reload();
       void loadSuggestions();
       return;
     }
@@ -561,7 +552,7 @@ export function MealJournalClient() {
     }
 
     resetAfterSave();
-    void load();
+    void reload();
     void loadSuggestions();
   }
 
@@ -605,7 +596,7 @@ export function MealJournalClient() {
     setDeletingId(null);
     if (!error) {
       if (editingId === id) cancelEdit();
-      void load();
+      void reload();
       void loadSuggestions();
     }
   }
@@ -624,6 +615,37 @@ export function MealJournalClient() {
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-6">
+      <section className="rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 space-y-0.5">
+            <h2 className="text-sm font-semibold text-zinc-900">
+              Últimas refeições
+            </h2>
+            <p className="text-xs text-zinc-500">
+              Vê e gere os registos recentes; o ecrã completo mostra todo o
+              histórico.
+            </p>
+          </div>
+          <Link
+            href="/refeicoes/historico"
+            className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent ring-1 ring-accent/25 transition hover:bg-accent/15 active:scale-[0.98]"
+          >
+            Histórico
+            <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+          </Link>
+        </div>
+        <MealHistoryList
+          logs={logs}
+          loading={loading}
+          onEdit={(row) => void startEdit(row)}
+          onDelete={(id) => void removeLog(id)}
+          deletingId={deletingId}
+          editBusy={loadingEdit}
+          limit={4}
+          density="compact"
+        />
+      </section>
+
       <form
         onSubmit={(e) => void handleSubmit(e)}
         className="min-w-0 max-w-full rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card"
@@ -897,92 +919,6 @@ export function MealJournalClient() {
         </div>
       </form>
 
-      <details className="group rounded-2xl border border-zinc-200/90 bg-surface shadow-card">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 p-4 text-sm font-semibold text-zinc-900 [&::-webkit-details-marker]:hidden">
-          <span>Refeições anteriores</span>
-          <ChevronDown className="h-4 w-4 shrink-0 text-zinc-500 transition group-open:rotate-180" />
-        </summary>
-        <div className="border-t border-zinc-100 px-4 pb-4 pt-2">
-          <p className="text-xs text-zinc-500">
-            Apagar remove também o HC e a insulina ligados a este registo.
-          </p>
-          {loading ? (
-            <p className="mt-4 text-sm text-zinc-500">A carregar…</p>
-          ) : logs.length === 0 ? (
-            <p className="mt-4 rounded-xl border border-dashed border-zinc-200 bg-zinc-50/80 px-4 py-6 text-center text-sm text-zinc-500">
-              Ainda não há registos.
-            </p>
-          ) : (
-            <ul className="mt-3 flex flex-col gap-2">
-              {logs.map((row, i) => {
-                const prev = logs[i - 1];
-                const showDayHeader =
-                  i === 0 || row.logged_on !== prev?.logged_on;
-                return (
-                  <li key={row.id} className="space-y-2">
-                    {showDayHeader && (
-                      <p className="pt-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-400 first:pt-0">
-                        {formatDayPt(row.logged_on)}
-                      </p>
-                    )}
-                    <div className="flex gap-3 rounded-2xl border border-zinc-200/90 bg-surface p-3 shadow-card">
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <p className="text-sm font-medium text-zinc-900">
-                          {mealSlotLabelPt(row.meal_slot as MealSlot)}
-                          <span className="ml-2 font-normal tabular-nums text-zinc-500">
-                            {formatTimePt(row.logged_at ?? row.created_at)}
-                          </span>
-                        </p>
-                        <p className="text-sm tabular-nums text-zinc-700">
-                          <span className="font-semibold text-zinc-900">
-                            {row.grams_carbs} g
-                          </span>
-                          {" · HC"}
-                          {row.rapid_insulin_units != null && (
-                            <>
-                              <span className="mx-1 text-zinc-300">·</span>
-                              <span className="font-semibold text-violet-800">
-                                {row.rapid_insulin_units} UI
-                              </span>
-                              {" rápida"}
-                            </>
-                          )}
-                        </p>
-                        {row.note && (
-                          <p className="text-xs leading-relaxed text-zinc-600">
-                            {row.note}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex shrink-0 gap-1">
-                        <button
-                          type="button"
-                          title="Editar registo"
-                          disabled={loadingEdit || deletingId === row.id}
-                          onClick={() => void startEdit(row)}
-                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 text-zinc-500 transition hover:border-accent/40 hover:bg-accent/10 hover:text-accent disabled:opacity-40"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          title="Apagar registo"
-                          disabled={deletingId === row.id}
-                          onClick={() => void removeLog(row.id)}
-                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 text-zinc-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:opacity-40"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-      </details>
-
       <Drawer
         open={pickerOpen}
         onOpenChange={(open) => {
@@ -1027,20 +963,30 @@ export function MealJournalClient() {
                   : "Nada encontrado."}
               </li>
             ) : (
-              filteredPickerFoods.map((f) => (
+              filteredPickerFoods.map((f) => {
+                const meta = foodMetaLine(f);
+                return (
                 <li key={f.id}>
                   <button
                     type="button"
                     onClick={() => addFoodLine(f, 100)}
                     className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-zinc-900 hover:bg-zinc-100"
                   >
-                    <span className="min-w-0 flex-1 truncate">{f.name}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{f.name}</span>
+                      {meta && (
+                        <span className="block truncate text-xs text-zinc-500">
+                          {meta}
+                        </span>
+                      )}
+                    </span>
                     <span className="shrink-0 text-xs text-zinc-500">
                       {f.carbs_per_100g} g/100g
                     </span>
                   </button>
                 </li>
-              ))
+                );
+              })
             )}
           </ul>
         </DrawerContent>

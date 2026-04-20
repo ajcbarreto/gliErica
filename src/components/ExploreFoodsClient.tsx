@@ -15,6 +15,10 @@ export function ExploreFoodsClient() {
     setNewName,
     newCarbs,
     setNewCarbs,
+    newBrand,
+    setNewBrand,
+    newRetailer,
+    setNewRetailer,
     newFavorite,
     setNewFavorite,
     adding,
@@ -79,6 +83,7 @@ export function ExploreFoodsClient() {
       />
 
       <form
+        id="explore-novo-alimento"
         onSubmit={(e) => void handleAddFood(e)}
         className="rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card"
       >
@@ -93,6 +98,20 @@ export function ExploreFoodsClient() {
             onChange={(e) => setNewName(e.target.value)}
             className="w-full rounded-xl border border-zinc-200 bg-canvas px-3 py-2.5 text-sm text-zinc-900 outline-none ring-accent/30 focus:ring-2"
           />
+          <div className="grid gap-2 sm:grid-cols-2">
+            <input
+              placeholder="Marca (opcional)"
+              value={newBrand}
+              onChange={(e) => setNewBrand(e.target.value)}
+              className="w-full rounded-xl border border-zinc-200 bg-canvas px-3 py-2.5 text-sm text-zinc-900 outline-none ring-accent/30 focus:ring-2"
+            />
+            <input
+              placeholder="Loja (ex.: Continente, Mercadona)"
+              value={newRetailer}
+              onChange={(e) => setNewRetailer(e.target.value)}
+              className="w-full rounded-xl border border-zinc-200 bg-canvas px-3 py-2.5 text-sm text-zinc-900 outline-none ring-accent/30 focus:ring-2"
+            />
+          </div>
           <div className="flex flex-wrap items-end gap-3">
             <div className="min-w-0 flex-1">
               <label className="mb-1 block text-[11px] font-medium text-zinc-500">
