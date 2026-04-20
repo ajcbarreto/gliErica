@@ -27,6 +27,10 @@ export function useFoodLibrary() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
+  /** "all" | "none" (sem loja) | valor exacto da loja */
+  const [retailerFilter, setRetailerFilter] = useState<string>("all");
+  /** "all" | "none" (sem marca) | valor exacto da marca */
+  const [brandFilter, setBrandFilter] = useState<string>("all");
 
   const [newName, setNewName] = useState("");
   const [newCarbs, setNewCarbs] = useState("");
@@ -82,18 +86,68 @@ export function useFoodLibrary() {
     return () => window.removeEventListener("glierica-sync-complete", onSynced);
   }, [loadFoods]);
 
+  const retailerOptions = useMemo(() => {
+    const s = new Set<string>();
+    for (const f of foods) {
+      const r = f.retailer?.trim();
+      if (r) s.add(r);
+    }
+    return Array.from(s).sort((a, b) => a.localeCompare(b, "pt"));
+  }, [foods]);
+
+  const brandOptions = useMemo(() => {
+    const s = new Set<string>();
+    for (const f of foods) {
+      const b = f.brand?.trim();
+      if (b) s.add(b);
+    }
+    return Array.from(s).sort((a, b) => a.localeCompare(b, "pt"));
+  }, [foods]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return foods.filter((f) => {
       if (favoritesOnly && !f.is_favorite) return false;
+      const r = f.retailer?.trim() ?? "";
+      const b = f.brand?.trim() ?? "";
+      if (retailerFilter !== "all") {
+        if (retailerFilter === "none" && r !== "") return false;
+        if (retailerFilter !== "none" && r !== retailerFilter) return false;
+      }
+      if (brandFilter !== "all") {
+        if (brandFilter === "none" && b !== "") return false;
+        if (brandFilter !== "none" && b !== brandFilter) return false;
+      }
       if (!q) return true;
-      const meta = `${f.brand ?? ""} ${f.retailer ?? ""}`.toLowerCase();
+      const meta = `${b} ${r}`.toLowerCase();
       return (
         f.name.toLowerCase().includes(q) ||
         meta.includes(q)
       );
     });
-  }, [foods, search, favoritesOnly]);
+  }, [foods, search, favoritesOnly, retailerFilter, brandFilter]);
+
+  const foodsGroupedByRetailer = useMemo(() => {
+    const map = new Map<string, Food[]>();
+    for (const f of filtered) {
+      const r = f.retailer?.trim();
+      const key = r ?? "";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(f);
+    }
+    const entries = Array.from(map.entries());
+    entries.sort((a, b) => {
+      const [ka] = a;
+      const [kb] = b;
+      if (ka === "") return 1;
+      if (kb === "") return -1;
+      return ka.localeCompare(kb, "pt");
+    });
+    return entries.map(([key, list]) => ({
+      label: key === "" ? "Sem loja" : key,
+      foods: sortFoods(list),
+    }));
+  }, [filtered]);
 
   async function handleAddFood(e: React.FormEvent) {
     e.preventDefault();
@@ -176,6 +230,104 @@ export function useFoodLibrary() {
     setNewFavorite(false);
     void loadFoods();
   }
+
+  const updateFood = useCallback(
+    async (
+      foodId: string,
+      data: {
+        name: string;
+        carbs_per_100g: number;
+        is_favorite: boolean;
+        brand: string | null;
+        retailer: string | null;
+      }
+    ): Promise<{ error: string | null }> => {
+      if (!userId) {
+        return { error: "Inicia sessão para editar alimentos." };
+      }
+      if (foodId.startsWith("temp-")) {
+        return { error: "Este alimento ainda está a sincronizar — edita quando deixar de estar pendente." };
+      }
+
+      const nameTrim = data.name.trim();
+      if (!nameTrim) {
+        return { error: "Indica o nome do alimento." };
+      }
+      if (Number.isNaN(data.carbs_per_100g) || data.carbs_per_100g < 0) {
+        return { error: "HC por 100 g inválido." };
+      }
+
+      const brandNorm = data.brand?.trim() ? data.brand.trim() : null;
+      const retailerNorm = data.retailer?.trim() ? data.retailer.trim() : null;
+
+      if (!navigator.onLine) {
+        setFoods((prev) => {
+          const next = prev.map((f) =>
+            f.id === foodId
+              ? {
+                  ...f,
+                  name: nameTrim,
+                  carbs_per_100g: data.carbs_per_100g,
+                  is_favorite: data.is_favorite,
+                  brand: brandNorm,
+                  retailer: retailerNorm,
+                }
+              : f
+          );
+          saveFoodsCache(userId, next);
+          return next;
+        });
+        enqueueOp({
+          type: "food_update",
+          id: newOpId(),
+          payload: {
+            userId,
+            food_id: foodId,
+            name: nameTrim,
+            carbs_per_100g: data.carbs_per_100g,
+            is_favorite: data.is_favorite,
+            brand: brandNorm,
+            retailer: retailerNorm,
+          },
+        });
+        return { error: null };
+      }
+
+      const { error } = await supabase
+        .from("foods")
+        .update({
+          name: nameTrim,
+          carbs_per_100g: data.carbs_per_100g,
+          is_favorite: data.is_favorite,
+          brand: brandNorm,
+          retailer: retailerNorm,
+        })
+        .eq("id", foodId)
+        .eq("user_id", userId);
+
+      if (error) {
+        return { error: error.message };
+      }
+
+      setFoods((prev) =>
+        prev.map((f) =>
+          f.id === foodId
+            ? {
+                ...f,
+                name: nameTrim,
+                carbs_per_100g: data.carbs_per_100g,
+                is_favorite: data.is_favorite,
+                brand: brandNorm,
+                retailer: retailerNorm,
+              }
+            : f
+        )
+      );
+      void loadFoods();
+      return { error: null };
+    },
+    [userId, supabase, loadFoods]
+  );
 
   async function toggleFavorite(food: Food) {
     if (food.id.startsWith("temp-")) return;
@@ -306,7 +458,15 @@ export function useFoodLibrary() {
     setSearch,
     favoritesOnly,
     setFavoritesOnly,
+    retailerFilter,
+    setRetailerFilter,
+    brandFilter,
+    setBrandFilter,
+    retailerOptions,
+    brandOptions,
     filtered,
+    foodsGroupedByRetailer,
+    updateFood,
     loadFoods,
     newName,
     setNewName,

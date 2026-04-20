@@ -1,6 +1,7 @@
 "use client";
 
-import { Pencil, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { ChevronRight, Pencil, Trash2 } from "lucide-react";
 import { mealSlotLabelPt, type MealSlot } from "@/lib/meal-slots";
 import type { MealLog } from "@/types/database";
 
@@ -93,63 +94,83 @@ export function MealHistoryList({
             <div
               className={
                 compact
-                  ? "flex gap-2 rounded-xl border border-zinc-200/90 bg-surface p-2.5 shadow-sm"
-                  : "flex gap-3 rounded-2xl border border-zinc-200/90 bg-surface p-3 shadow-card"
+                  ? "flex gap-0 overflow-hidden rounded-xl border border-zinc-200/90 bg-surface shadow-sm"
+                  : "flex gap-0 overflow-hidden rounded-2xl border border-zinc-200/90 bg-surface shadow-card"
               }
             >
-              <div className="min-w-0 flex-1 space-y-0.5">
-                <p
-                  className={
-                    compact
-                      ? "text-[13px] font-medium leading-tight text-zinc-900"
-                      : "text-sm font-medium text-zinc-900"
-                  }
-                >
-                  {mealSlotLabelPt(row.meal_slot as MealSlot)}
-                  <span
-                    className={
-                      compact
-                        ? "ml-1.5 font-normal tabular-nums text-zinc-500"
-                        : "ml-2 font-normal tabular-nums text-zinc-500"
-                    }
-                  >
-                    {formatTimePt(row.logged_at ?? row.created_at)}
-                  </span>
-                </p>
-                <p
-                  className={
-                    compact
-                      ? "text-xs tabular-nums text-zinc-700"
-                      : "text-sm tabular-nums text-zinc-700"
-                  }
-                >
-                  <span className="font-semibold text-zinc-900">
-                    {row.grams_carbs} g
-                  </span>
-                  {" · HC"}
-                  {row.rapid_insulin_units != null && (
-                    <>
-                      <span className="mx-1 text-zinc-300">·</span>
-                      <span className="font-semibold text-violet-800">
-                        {row.rapid_insulin_units} UI
-                      </span>
-                      {" rápida"}
-                    </>
-                  )}
-                </p>
-                {row.note && (
+              <Link
+                href={`/refeicoes/historico/${row.id}`}
+                className={
+                  compact
+                    ? "flex min-w-0 flex-1 items-start gap-1.5 px-2.5 py-2.5 text-left outline-none ring-inset ring-accent/40 transition hover:bg-zinc-50/90 focus-visible:ring-2"
+                    : "flex min-w-0 flex-1 items-start gap-2 px-3 py-3 text-left outline-none ring-inset ring-accent/40 transition hover:bg-zinc-50/90 focus-visible:ring-2"
+                }
+              >
+                <span className="min-w-0 flex-1 space-y-0.5">
                   <p
                     className={
                       compact
-                        ? "line-clamp-2 text-[11px] leading-snug text-zinc-600"
-                        : "text-xs leading-relaxed text-zinc-600"
+                        ? "text-[13px] font-medium leading-tight text-zinc-900"
+                        : "text-sm font-medium text-zinc-900"
                     }
                   >
-                    {row.note}
+                    {mealSlotLabelPt(row.meal_slot as MealSlot)}
+                    <span
+                      className={
+                        compact
+                          ? "ml-1.5 font-normal tabular-nums text-zinc-500"
+                          : "ml-2 font-normal tabular-nums text-zinc-500"
+                      }
+                    >
+                      {formatTimePt(row.logged_at ?? row.created_at)}
+                    </span>
                   </p>
-                )}
-              </div>
-              <div className="flex shrink-0 gap-0.5 self-start">
+                  <p
+                    className={
+                      compact
+                        ? "text-xs tabular-nums text-zinc-700"
+                        : "text-sm tabular-nums text-zinc-700"
+                    }
+                  >
+                    <span className="font-semibold text-zinc-900">
+                      {row.grams_carbs} g
+                    </span>
+                    {" · HC"}
+                    {row.rapid_insulin_units != null && (
+                      <>
+                        <span className="mx-1 text-zinc-300">·</span>
+                        <span className="font-semibold text-violet-800">
+                          {row.rapid_insulin_units} UI
+                        </span>
+                        {" rápida"}
+                      </>
+                    )}
+                  </p>
+                  {row.note && (
+                    <p
+                      className={
+                        compact
+                          ? "line-clamp-2 text-[11px] leading-snug text-zinc-600"
+                          : "text-xs leading-relaxed text-zinc-600"
+                      }
+                    >
+                      {row.note}
+                    </p>
+                  )}
+                </span>
+                <ChevronRight
+                  className="mt-0.5 h-4 w-4 shrink-0 text-zinc-300"
+                  aria-hidden
+                />
+                <span className="sr-only">Ver detalhes da refeição</span>
+              </Link>
+              <div
+                className={
+                  compact
+                    ? "flex shrink-0 gap-0.5 self-stretch border-l border-zinc-100 bg-surface px-1 py-2"
+                    : "flex shrink-0 gap-0.5 self-stretch border-l border-zinc-100 bg-surface px-1.5 py-2.5"
+                }
+              >
                 <button
                   type="button"
                   title="Editar registo"

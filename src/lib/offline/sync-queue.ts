@@ -78,6 +78,40 @@ export async function flushPendingSyncQueue(): Promise<FlushResult> {
           synced += 1;
           break;
         }
+        case "food_update": {
+          const { error } = await supabase
+            .from("foods")
+            .update({
+              name: op.payload.name,
+              carbs_per_100g: op.payload.carbs_per_100g,
+              is_favorite: op.payload.is_favorite,
+              brand: op.payload.brand,
+              retailer: op.payload.retailer,
+            })
+            .eq("id", op.payload.food_id)
+            .eq("user_id", userId);
+          if (error) throw error;
+          const cached = loadFoodsCache(userId);
+          if (cached) {
+            saveFoodsCache(
+              userId,
+              cached.map((f) =>
+                f.id === op.payload.food_id
+                  ? {
+                      ...f,
+                      name: op.payload.name,
+                      carbs_per_100g: op.payload.carbs_per_100g,
+                      is_favorite: op.payload.is_favorite,
+                      brand: op.payload.brand,
+                      retailer: op.payload.retailer,
+                    }
+                  : f
+              )
+            );
+          }
+          synced += 1;
+          break;
+        }
         case "carb_insert": {
           const { error } = await supabase.from("carb_entries").insert({
             user_id: op.payload.userId,

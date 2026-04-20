@@ -25,6 +25,20 @@ export type QueuedFoodFavorite = {
   };
 };
 
+export type QueuedFoodUpdate = {
+  type: "food_update";
+  id: string;
+  payload: {
+    userId: string;
+    food_id: string;
+    name: string;
+    carbs_per_100g: number;
+    is_favorite: boolean;
+    brand: string | null;
+    retailer: string | null;
+  };
+};
+
 export type QueuedCarbInsert = {
   type: "carb_insert";
   id: string;
@@ -38,7 +52,11 @@ export type QueuedCarbInsert = {
   };
 };
 
-export type QueuedOp = QueuedFoodInsert | QueuedFoodFavorite | QueuedCarbInsert;
+export type QueuedOp =
+  | QueuedFoodInsert
+  | QueuedFoodFavorite
+  | QueuedFoodUpdate
+  | QueuedCarbInsert;
 
 const QUEUE_KEY = "glierica_sync_queue_v1";
 

@@ -46,8 +46,8 @@ export function MealHistoryPageClient() {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1">
       <p className="text-xs text-zinc-500">
-        Apagar remove também o HC e a insulina ligados a este registo. Editar
-        abre o formulário de registo.
+        Toca num registo para ver ingredientes e linhas. Apagar remove também o
+        HC e a insulina ligados. Editar abre o formulário de registo.
       </p>
       <MealHistoryList
         logs={logs}

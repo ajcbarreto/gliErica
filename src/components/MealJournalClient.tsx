@@ -622,8 +622,8 @@ export function MealJournalClient() {
               Últimas refeições
             </h2>
             <p className="text-xs text-zinc-500">
-              Vê e gere os registos recentes; o ecrã completo mostra todo o
-              histórico.
+              Toca num registo para ver ingredientes e linhas; o ecrã completo
+              lista todo o histórico.
             </p>
           </div>
           <Link

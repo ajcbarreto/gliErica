@@ -76,7 +76,7 @@ export function DashboardCarbSection() {
           </p>
           <Link
             href="/refeicoes/registos"
-            className="flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-accent-foreground shadow-lg shadow-accent/20 transition active:scale-[0.98] active:opacity-90"
+            className="flex items-center justify-center gap-2 rounded-xl border border-accent/40 bg-surface px-4 py-3 text-sm font-semibold text-accent transition active:scale-[0.98] active:bg-accent/5"
           >
             <ClipboardList className="h-4 w-4" aria-hidden />
             Registar refeição
