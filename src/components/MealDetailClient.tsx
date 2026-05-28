@@ -7,6 +7,7 @@ import { useAuthUser } from "@/hooks/useAuthUser";
 import { mealSlotLabelPt, type MealSlot } from "@/lib/meal-slots";
 import type { CompositeMeal, MealLog, MealLogItem } from "@/types/database";
 import { Layers, Pencil } from "lucide-react";
+import { MealResultPanel } from "@/components/MealResultPanel";
 
 function formatDayLong(isoDate: string) {
   return new Date(`${isoDate}T12:00:00`).toLocaleDateString("pt-PT", {
@@ -184,6 +185,8 @@ export function MealDetailClient({ mealId }: MealDetailClientProps) {
           Editar
         </Link>
       </div>
+
+      <MealResultPanel mealLogId={meal.id} />
 
       <section className="rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card">
         <h3 className="text-xs font-medium uppercase tracking-wider text-zinc-500">

@@ -15,10 +15,13 @@ import {
 } from "@/lib/date";
 import { MEAL_SLOTS, mealSlotLabelPt, type MealSlot } from "@/lib/meal-slots";
 import { carbsFromFoodGrams, roundCarbs } from "@/lib/carb-math";
-import { foodIngredientLabel, foodMetaLine } from "@/lib/food-meta";
+import { foodIngredientLabel } from "@/lib/food-meta";
 import { usePullToRefresh } from "@/lib/use-pull-refresh";
 import { useMealLogs } from "@/hooks/useMealLogs";
 import { MealHistoryList } from "@/components/MealHistoryList";
+import { FoodPickerDrawer } from "@/components/FoodPickerDrawer";
+import { getMealOutcomes } from "@/app/actions/meal-outcome";
+import type { MealOutcomeKind } from "@/lib/analysis/meal-outcome";
 import type {
   CompositeMeal,
   Food,
@@ -30,7 +33,6 @@ import {
   ChevronRight,
   Layers,
   Plus,
-  Search,
   Trash2,
   X,
 } from "lucide-react";
@@ -49,6 +51,7 @@ type MealLine = {
   label: string;
   grams: number;
   carbsLine: number;
+  carbsPer100g?: number;
 };
 
 function lineKey() {
@@ -84,8 +87,11 @@ export function MealJournalClient() {
   >({});
 
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerSearch, setPickerSearch] = useState("");
   const [compositeOpen, setCompositeOpen] = useState(false);
+
+  const [outcomesByMeal, setOutcomesByMeal] = useState<
+    Record<string, { kind: MealOutcomeKind }>
+  >({});
 
   const [suggestionLogs, setSuggestionLogs] = useState<MealLog[]>([]);
   const [icrGramsPerUnit, setIcrGramsPerUnit] = useState<number | null>(null);
@@ -203,6 +209,28 @@ export function MealJournalClient() {
     void loadSuggestions();
   }, [loadSuggestions]);
 
+  useEffect(() => {
+    if (loading) return;
+    if (logs.length === 0) {
+      setOutcomesByMeal({});
+      return;
+    }
+    const ids = logs.slice(0, 8).map((l) => l.id);
+    let alive = true;
+    void (async () => {
+      const res = await getMealOutcomes(ids);
+      if (!alive || !res.ok) return;
+      const map: Record<string, { kind: MealOutcomeKind }> = {};
+      for (const id of Object.keys(res.outcomes)) {
+        map[id] = { kind: res.outcomes[id]!.kind };
+      }
+      setOutcomesByMeal(map);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [logs, loading]);
+
   const noteSuggestions = useMemo(() => {
     const seen = new Set<string>();
     const out: string[] = [];
@@ -275,10 +303,15 @@ export function MealJournalClient() {
         label: foodIngredientLabel(food),
         grams: g,
         carbsLine,
+        carbsPer100g: food.carbs_per_100g,
       },
     ]);
-    setPickerOpen(false);
-    setPickerSearch("");
+  }
+
+  function handleFoodInserted(food: Food) {
+    setFoods((prev) =>
+      [...prev, food].sort((a, b) => a.name.localeCompare(b.name, "pt"))
+    );
   }
 
   function expandComposite(meal: CompositeMeal) {
@@ -297,6 +330,7 @@ export function MealJournalClient() {
         label,
         grams: g,
         carbsLine,
+        carbsPer100g: cpg,
       });
     }
     if (newLines.length === 0) return;
@@ -305,23 +339,43 @@ export function MealJournalClient() {
   }
 
   function updateLineGrams(key: string, gramsRaw: string) {
-    const g = Math.max(1, Math.round(parseFloat(gramsRaw.replace(",", ".")) || 1));
+    const parsed = parseFloat(gramsRaw.replace(",", "."));
+    const g =
+      Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : 0;
     setLines((prev) =>
       prev.map((l) => {
         if (l.key !== key) return l;
-        if (l.foodId && foodsById[l.foodId]) {
-          const f = foodsById[l.foodId];
-          return {
-            ...l,
-            grams: g,
-            carbsLine: roundCarbs(carbsFromFoodGrams(g, f.carbs_per_100g)),
-          };
-        }
-        const ratio = l.grams > 0 ? l.carbsLine / l.grams : 0;
+        const cpg =
+          l.carbsPer100g ??
+          (l.foodId && foodsById[l.foodId]
+            ? foodsById[l.foodId].carbs_per_100g
+            : l.grams > 0
+              ? (l.carbsLine / l.grams) * 100
+              : 0);
         return {
           ...l,
           grams: g,
-          carbsLine: roundCarbs(ratio * g),
+          carbsLine: g > 0 ? roundCarbs(carbsFromFoodGrams(g, cpg)) : 0,
+          carbsPer100g: cpg,
+        };
+      })
+    );
+  }
+
+  function ensureLineMinGrams(key: string) {
+    setLines((prev) =>
+      prev.map((l) => {
+        if (l.key !== key || l.grams > 0) return l;
+        const cpg =
+          l.carbsPer100g ??
+          (l.foodId && foodsById[l.foodId]
+            ? foodsById[l.foodId].carbs_per_100g
+            : 0);
+        return {
+          ...l,
+          grams: 1,
+          carbsLine: roundCarbs(carbsFromFoodGrams(1, cpg)),
+          carbsPer100g: cpg,
         };
       })
     );
@@ -385,6 +439,10 @@ export function MealJournalClient() {
             label: it.ingredient_label,
             grams: it.grams,
             carbsLine: it.grams_carbs_line,
+            carbsPer100g:
+              it.grams > 0
+                ? (it.grams_carbs_line / it.grams) * 100
+                : undefined,
           }))
         );
         setGramsStr("");
@@ -421,15 +479,6 @@ export function MealJournalClient() {
     })();
   }, [editFromQuery, userId, loading, logs, router, startEdit]);
 
-  const filteredPickerFoods = useMemo(() => {
-    const q = pickerSearch.trim().toLowerCase();
-    if (!q) return foods;
-    return foods.filter((f) => {
-      const meta = `${f.brand ?? ""} ${f.retailer ?? ""}`.toLowerCase();
-      return f.name.toLowerCase().includes(q) || meta.includes(q);
-    });
-  }, [foods, pickerSearch]);
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setFormError(null);
@@ -464,13 +513,23 @@ export function MealJournalClient() {
         return;
       }
 
-      const payload = lines.map((l) => ({
-        food_id: l.foodId,
-        composite_meal_id: l.compositeMealId,
-        ingredient_label: l.label,
-        grams: l.grams,
-        grams_carbs_line: l.carbsLine,
-      }));
+      const payload = lines.map((l) => {
+        const g = Math.max(1, l.grams);
+        const cpg =
+          l.carbsPer100g ??
+          (l.foodId && foodsById[l.foodId]
+            ? foodsById[l.foodId].carbs_per_100g
+            : 0);
+        const carbsLine =
+          l.grams > 0 ? l.carbsLine : roundCarbs(carbsFromFoodGrams(g, cpg));
+        return {
+          food_id: l.foodId,
+          composite_meal_id: l.compositeMealId,
+          ingredient_label: l.label,
+          grams: g,
+          grams_carbs_line: carbsLine,
+        };
+      });
 
       setSaving(true);
       const { error } = editingId
@@ -759,8 +818,9 @@ export function MealJournalClient() {
                     <div className="flex items-center gap-1">
                       <input
                         inputMode="numeric"
-                        value={String(l.grams)}
+                        value={l.grams > 0 ? String(l.grams) : ""}
                         onChange={(e) => updateLineGrams(l.key, e.target.value)}
+                        onBlur={() => ensureLineMinGrams(l.key)}
                         className="w-16 rounded-lg border border-zinc-200 bg-surface px-2 py-1 text-xs tabular-nums"
                       />
                       <span className="text-[11px] text-zinc-500">g</span>
@@ -916,81 +976,17 @@ export function MealJournalClient() {
           editBusy={loadingEdit}
           limit={4}
           density="compact"
+          outcomes={outcomesByMeal}
         />
       </section>
 
-      <Drawer
+      <FoodPickerDrawer
         open={pickerOpen}
-        onOpenChange={(open) => {
-          if (!open) setPickerOpen(false);
-        }}
-      >
-        <DrawerContent
-          showHandle
-          className="flex max-h-[min(85vh,520px)] flex-col px-0 pt-0"
-        >
-          <VaulDrawer.Title className="sr-only">Escolher alimento</VaulDrawer.Title>
-          <div className="flex items-center justify-between border-b border-zinc-100 px-4 pb-3 pt-1">
-            <h2
-              id="pick-food-title"
-              className="text-lg font-semibold text-zinc-900"
-            >
-              Escolher alimento
-            </h2>
-            <button
-              type="button"
-              onClick={() => setPickerOpen(false)}
-              className="rounded-full p-2 text-zinc-600 hover:bg-zinc-100"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          <div className="relative border-b border-zinc-100 px-4 py-2">
-            <Search className="pointer-events-none absolute left-7 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-            <input
-              type="search"
-              placeholder="Pesquisar…"
-              value={pickerSearch}
-              onChange={(e) => setPickerSearch(e.target.value)}
-              className="w-full rounded-xl border border-zinc-200 py-2.5 pl-10 pr-3 text-sm outline-none ring-accent/30 focus:ring-2"
-            />
-          </div>
-          <ul className="min-h-0 flex-1 overflow-y-auto p-2">
-            {filteredPickerFoods.length === 0 ? (
-              <li className="px-3 py-8 text-center text-sm text-zinc-500">
-                {foods.length === 0
-                  ? "Adiciona alimentos em Biblioteca → Explorar."
-                  : "Nada encontrado."}
-              </li>
-            ) : (
-              filteredPickerFoods.map((f) => {
-                const meta = foodMetaLine(f);
-                return (
-                <li key={f.id}>
-                  <button
-                    type="button"
-                    onClick={() => addFoodLine(f, 100)}
-                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-zinc-900 hover:bg-zinc-100"
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate">{f.name}</span>
-                      {meta && (
-                        <span className="block truncate text-xs text-zinc-500">
-                          {meta}
-                        </span>
-                      )}
-                    </span>
-                    <span className="shrink-0 text-xs text-zinc-500">
-                      {f.carbs_per_100g} g/100g
-                    </span>
-                  </button>
-                </li>
-                );
-              })
-            )}
-          </ul>
-        </DrawerContent>
-      </Drawer>
+        onOpenChange={setPickerOpen}
+        foods={foods}
+        onPick={(food, grams) => addFoodLine(food, grams)}
+        onFoodInserted={handleFoodInserted}
+      />
 
       <Drawer
         open={compositeOpen}

@@ -8,8 +8,9 @@ import { getLocalDateKey } from "@/lib/date";
 import { carbsFromFoodGrams, roundCarbs } from "@/lib/carb-math";
 import type { CompositeMeal, Food } from "@/types/database";
 import { foodIngredientLabel, foodMetaLine } from "@/lib/food-meta";
-import { ArrowLeft, Layers, Plus, Star } from "lucide-react";
+import { ArrowLeft, Layers, Plus, Search, Star } from "lucide-react";
 import { usePullToRefresh } from "@/lib/use-pull-refresh";
+import { FoodPickerDrawer } from "@/components/FoodPickerDrawer";
 
 type ItemDraft = { food_id: string; grams: number };
 
@@ -27,6 +28,7 @@ export function CompositeMealBuilder() {
   const [mealName, setMealName] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const foodsById = useMemo(
     () => Object.fromEntries(foods.map((f) => [f.id, f])),
@@ -102,6 +104,32 @@ export function CompositeMealBuilder() {
     setSelected((prev) => ({ ...prev, [id]: grams }));
   }
 
+  function setGramsFromInput(id: string, raw: string) {
+    const parsed = parseFloat(raw.replace(",", "."));
+    const g = Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : 0;
+    setGrams(id, g);
+  }
+
+  function ensureSelectedMinGrams(id: string) {
+    setSelected((prev) => {
+      if ((prev[id] ?? 0) > 0) return prev;
+      return { ...prev, [id]: 1 };
+    });
+  }
+
+  function handleFoodInserted(food: Food) {
+    setFoods((prev) =>
+      [...prev, food].sort((a, b) => a.name.localeCompare(b.name, "pt"))
+    );
+  }
+
+  function handlePickFood(food: Food, grams: number) {
+    setSelected((prev) => ({
+      ...prev,
+      [food.id]: Math.max(1, prev[food.id] ?? grams),
+    }));
+  }
+
   const draftTotal = useMemo(() => {
     let t = 0;
     for (const [fid, g] of Object.entries(selected)) {
@@ -150,7 +178,7 @@ export function CompositeMealBuilder() {
     const rows = entries.map(([food_id, grams]) => ({
       composite_meal_id: mealId,
       food_id,
-      grams,
+      grams: Math.max(1, grams),
     }));
 
     const { error: iErr } = await supabase
@@ -272,13 +300,19 @@ export function CompositeMealBuilder() {
           Seleciona alimentos na biblioteca e ajusta as gramas. Mínimo 2.
         </p>
 
+        <button
+          type="button"
+          onClick={() => setPickerOpen(true)}
+          className="mb-3 inline-flex items-center gap-1.5 rounded-xl border border-dashed border-accent/40 bg-accent/5 px-3 py-2 text-xs font-medium text-accent transition hover:bg-accent/10"
+        >
+          <Search className="h-3.5 w-3.5" aria-hidden />
+          Procurar ou criar alimento
+        </button>
+
         {foods.length === 0 ? (
           <p className="py-4 text-sm text-zinc-500">
-            Precisas de alimentos na{" "}
-            <Link href="/biblioteca/explorar" className="text-accent underline">
-              biblioteca
-            </Link>
-            .
+            Ainda não tens alimentos guardados. Usa &quot;Procurar ou criar
+            alimento&quot; acima para começar sem sair daqui.
           </p>
         ) : (
           <ul className="mb-4 max-h-60 space-y-2 overflow-y-auto pr-1">
@@ -315,10 +349,9 @@ export function CompositeMealBuilder() {
                         type="number"
                         min={1}
                         step={1}
-                        value={g}
-                        onChange={(e) =>
-                          setGrams(f.id, Math.max(1, Number(e.target.value) || 1))
-                        }
+                        value={g > 0 ? g : ""}
+                        onChange={(e) => setGramsFromInput(f.id, e.target.value)}
+                        onBlur={() => ensureSelectedMinGrams(f.id)}
                         className="w-20 rounded-lg border border-zinc-200 bg-surface px-2 py-1 text-xs tabular-nums text-zinc-900"
                       />
                       <span className="text-[11px] text-zinc-500">g</span>
@@ -421,6 +454,14 @@ export function CompositeMealBuilder() {
           </ul>
         )}
       </section>
+
+      <FoodPickerDrawer
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        foods={foods}
+        onPick={handlePickFood}
+        onFoodInserted={handleFoodInserted}
+      />
     </div>
   );
 }

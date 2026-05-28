@@ -18,6 +18,7 @@ import {
 import {
   getInsulinCarbAnalysis,
   type IcrAnalysisPayload,
+  type SlotIcrStat,
 } from "@/app/actions/icr-analysis";
 import { Activity, RefreshCw } from "lucide-react";
 import { usePullToRefresh } from "@/lib/use-pull-refresh";
@@ -205,6 +206,11 @@ function IcrBody({ data }: { data: IcrAnalysisPayload }) {
             </p>
           )}
 
+          <SlotIcrSection
+            perSlot={data.perSlot}
+            rule={data.profileGramsPerUnit}
+          />
+
           {insight && (
             <div className="rounded-2xl border border-violet-200 bg-violet-50/80 p-4 text-sm leading-relaxed text-violet-950">
               <p className="flex items-center gap-2 font-medium text-violet-900">
@@ -381,5 +387,128 @@ function LinkBack() {
     >
       ← Gráficos
     </Link>
+  );
+}
+
+function slotInsight(stat: SlotIcrStat, rule: number | null): string | null {
+  if (stat.medianImpliedG === null || stat.sampleCount < 3) return null;
+  if (rule === null) {
+    return `Mediana de ${stat.medianImpliedG} g/UI ao ${stat.label.toLowerCase()} (${stat.sampleCount} refeições). Define a regra em Definições para comparação automática.`;
+  }
+  const diff = stat.diffPctVsRule ?? 0;
+  if (Math.abs(diff) < 10) {
+    return `${stat.label}: mediana ${stat.medianImpliedG} g/UI ≈ regra (${rule} g/UI).`;
+  }
+  if (stat.medianImpliedG > rule) {
+    return `${stat.label}: a mediana é ${stat.medianImpliedG} g/UI (${diff > 0 ? "+" : ""}${diff}% vs regra). Há menos UI por grama do que a regra implica — pode indicar que neste momento do dia há mais sensibilidade à insulina. Conversa com a equipa clínica.`;
+  }
+  return `${stat.label}: a mediana é ${stat.medianImpliedG} g/UI (${diff}% vs regra). Há mais UI por grama do que a regra implica — pode indicar que neste momento do dia há mais resistência à insulina. Conversa com a equipa clínica.`;
+}
+
+function SlotIcrSection({
+  perSlot,
+  rule,
+}: {
+  perSlot: SlotIcrStat[];
+  rule: number | null;
+}) {
+  if (perSlot.length === 0) {
+    return (
+      <div className="rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card">
+        <p className="text-sm font-medium text-zinc-900">
+          Análise por momento do dia
+        </p>
+        <p className="mt-1 text-xs text-zinc-500">
+          Ainda não há refeições estruturadas (com HC e insulina rápida)
+          suficientes para separar por slot.
+        </p>
+      </div>
+    );
+  }
+
+  const insights = perSlot
+    .map((s) => slotInsight(s, rule))
+    .filter((s): s is string => s !== null);
+
+  return (
+    <div className="rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card">
+      <p className="text-sm font-medium text-zinc-900">
+        Análise por momento do dia
+      </p>
+      <p className="mt-1 text-xs text-zinc-500">
+        Mediana de g/UI por slot, baseada apenas em refeições com HC e insulina
+        rápida registadas.
+      </p>
+
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full text-left text-xs">
+          <thead>
+            <tr className="text-[10px] uppercase tracking-wide text-zinc-500">
+              <th className="py-1 pr-2 font-medium">Slot</th>
+              <th className="py-1 px-2 text-right font-medium">Refeições</th>
+              <th className="py-1 px-2 text-right font-medium">Mediana</th>
+              <th className="py-1 px-2 text-right font-medium">P25–P75</th>
+              <th className="py-1 pl-2 text-right font-medium">vs regra</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-zinc-100">
+            {perSlot.map((s) => {
+              const diff = s.diffPctVsRule;
+              const diffClass =
+                diff === null
+                  ? "text-zinc-500"
+                  : Math.abs(diff) < 10
+                    ? "text-emerald-700"
+                    : diff > 0
+                      ? "text-sky-700"
+                      : "text-amber-700";
+              return (
+                <tr key={s.slot} className="tabular-nums text-zinc-800">
+                  <td className="py-2 pr-2 font-medium text-zinc-900">
+                    {s.label}
+                  </td>
+                  <td className="py-2 px-2 text-right text-zinc-700">
+                    {s.sampleCount}
+                  </td>
+                  <td className="py-2 px-2 text-right font-semibold">
+                    {s.medianImpliedG != null
+                      ? `${s.medianImpliedG} g/UI`
+                      : "—"}
+                  </td>
+                  <td className="py-2 px-2 text-right text-zinc-600">
+                    {s.p25 != null && s.p75 != null
+                      ? `${s.p25} – ${s.p75}`
+                      : "—"}
+                  </td>
+                  <td className={`py-2 pl-2 text-right ${diffClass}`}>
+                    {diff === null
+                      ? "—"
+                      : `${diff > 0 ? "+" : ""}${diff}%`}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {insights.length > 0 && (
+        <ul className="mt-3 space-y-1.5 text-[11px] leading-relaxed text-zinc-700">
+          {insights.map((t, i) => (
+            <li
+              key={i}
+              className="rounded-lg border border-zinc-100 bg-zinc-50/70 px-2.5 py-1.5"
+            >
+              {t}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <p className="mt-3 text-[10px] leading-relaxed text-zinc-400">
+        Informação de referência — não substitui ajuste clínico. Slots com
+        poucas amostras (&lt; 3) não geram comentário automático.
+      </p>
+    </div>
   );
 }

@@ -11,6 +11,18 @@ import {
   type DailyInsulinCarbPoint,
 } from "@/lib/analysis/icr-stats";
 import { getRecentDateKeys, minDateKeyInKeys } from "@/lib/date-range";
+import { MEAL_SLOTS, mealSlotLabelPt, type MealSlot } from "@/lib/meal-slots";
+
+export type SlotIcrStat = {
+  slot: MealSlot;
+  label: string;
+  sampleCount: number;
+  medianImpliedG: number | null;
+  p25: number | null;
+  p75: number | null;
+  /** Diferença % vs regra do utilizador (se existir). */
+  diffPctVsRule: number | null;
+};
 
 export type IcrAnalysisPayload = {
   series: DailyInsulinCarbPoint[];
@@ -24,6 +36,8 @@ export type IcrAnalysisPayload = {
     p25: number | null;
     p75: number | null;
   };
+  /** Análise por momento do dia, baseada em refeições estruturadas. */
+  perSlot: SlotIcrStat[];
 };
 
 export async function getInsulinCarbAnalysis(
@@ -48,6 +62,7 @@ export async function getInsulinCarbAnalysis(
     { data: profile, error: pErr },
     { data: carbRows, error: cErr },
     { data: insulinRows, error: iErr },
+    { data: mealRows, error: mErr },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -64,6 +79,11 @@ export async function getInsulinCarbAnalysis(
       .select("logged_on, units, kind")
       .eq("user_id", appUserId)
       .eq("kind", "rapid")
+      .gte("logged_on", minKey),
+    supabase
+      .from("meal_logs")
+      .select("logged_on, meal_slot, grams_carbs, rapid_insulin_units")
+      .eq("user_id", appUserId)
       .gte("logged_on", minKey),
   ]);
 
@@ -84,6 +104,7 @@ export async function getInsulinCarbAnalysis(
     }
     return { ok: false, error: iErr.message };
   }
+  if (mErr) return { ok: false, error: mErr.message };
 
   const keySet = new Set(keys);
   const carbsByDay = new Map<string, number>();
@@ -111,6 +132,44 @@ export async function getInsulinCarbAnalysis(
   const profileGramsPerUnit =
     typeof g === "number" && g > 0 ? g : null;
 
+  // Análise por slot — uma estimativa de g/UI por refeição que tenha ambos > 0
+  const impliedBySlot: Map<MealSlot, number[]> = new Map();
+  for (const row of mealRows ?? []) {
+    const day = row.logged_on as string;
+    if (!keySet.has(day)) continue;
+    const carbs = Number(row.grams_carbs);
+    const rapid =
+      row.rapid_insulin_units != null
+        ? Number(row.rapid_insulin_units)
+        : null;
+    if (!(carbs > 0) || !(rapid !== null && rapid > 0)) continue;
+    const slot = row.meal_slot as MealSlot;
+    const ratio = Math.round((carbs / rapid) * 10) / 10;
+    const list = impliedBySlot.get(slot) ?? [];
+    list.push(ratio);
+    impliedBySlot.set(slot, list);
+  }
+
+  const perSlot: SlotIcrStat[] = MEAL_SLOTS.map((slot) => {
+    const values = (impliedBySlot.get(slot) ?? []).slice().sort((a, b) => a - b);
+    const med = median(values);
+    const diffPctVsRule =
+      med !== null && profileGramsPerUnit !== null
+        ? Math.round(((med - profileGramsPerUnit) / profileGramsPerUnit) * 1000) / 10
+        : null;
+    return {
+      slot,
+      label: mealSlotLabelPt(slot),
+      sampleCount: values.length,
+      medianImpliedG: med,
+      p25: percentile(values, 25),
+      p75: percentile(values, 75),
+      diffPctVsRule,
+    };
+  })
+    .filter((s) => s.sampleCount > 0)
+    .sort((a, b) => b.sampleCount - a.sampleCount);
+
   return {
     ok: true,
     data: {
@@ -127,6 +186,7 @@ export async function getInsulinCarbAnalysis(
         p25: percentile(sorted, 25),
         p75: percentile(sorted, 75),
       },
+      perSlot,
     },
   };
 }

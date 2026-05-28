@@ -1,9 +1,52 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Pencil, Trash2 } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  CheckCircle2,
+  ChevronRight,
+  Clock,
+  Info,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { mealSlotLabelPt, type MealSlot } from "@/lib/meal-slots";
 import type { MealLog } from "@/types/database";
+import {
+  outcomeLabelPt,
+  type MealOutcomeKind,
+} from "@/lib/analysis/meal-outcome";
+
+function outcomeBadgeClasses(kind: MealOutcomeKind): string {
+  switch (kind) {
+    case "in_target":
+      return "border-emerald-200 bg-emerald-50 text-emerald-900";
+    case "spike":
+      return "border-amber-200 bg-amber-50 text-amber-900";
+    case "slow_recovery":
+      return "border-orange-200 bg-orange-50 text-orange-900";
+    case "hypo_after":
+      return "border-rose-200 bg-rose-50 text-rose-900";
+    case "insufficient_data":
+      return "border-zinc-200 bg-zinc-50 text-zinc-600";
+  }
+}
+
+function OutcomeIcon({ kind }: { kind: MealOutcomeKind }) {
+  switch (kind) {
+    case "in_target":
+      return <CheckCircle2 className="h-3 w-3" aria-hidden />;
+    case "spike":
+      return <Activity className="h-3 w-3" aria-hidden />;
+    case "slow_recovery":
+      return <Clock className="h-3 w-3" aria-hidden />;
+    case "hypo_after":
+      return <AlertTriangle className="h-3 w-3" aria-hidden />;
+    case "insufficient_data":
+      return <Info className="h-3 w-3" aria-hidden />;
+  }
+}
 
 function formatDayPt(isoDate: string) {
   return new Date(`${isoDate}T12:00:00`).toLocaleDateString("pt-PT", {
@@ -36,6 +79,8 @@ export type MealHistoryListProps = {
   hideActions?: boolean;
   /** Não repetir cabeçalho do dia (útil quando só há um dia) */
   omitDayHeaders?: boolean;
+  /** Mapa meal_log.id → outcome classificado (badge). */
+  outcomes?: Record<string, { kind: MealOutcomeKind }>;
 };
 
 export function MealHistoryList({
@@ -49,6 +94,7 @@ export function MealHistoryList({
   density = "comfortable",
   hideActions = false,
   omitDayHeaders = false,
+  outcomes,
 }: MealHistoryListProps) {
   const shown = typeof limit === "number" ? logs.slice(0, limit) : logs;
   const compact = density === "compact";
@@ -163,6 +209,14 @@ export function MealHistoryList({
                     >
                       {row.note}
                     </p>
+                  )}
+                  {outcomes && outcomes[row.id] && (
+                    <span
+                      className={`mt-0.5 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${outcomeBadgeClasses(outcomes[row.id]!.kind)}`}
+                    >
+                      <OutcomeIcon kind={outcomes[row.id]!.kind} />
+                      {outcomeLabelPt(outcomes[row.id]!.kind)}
+                    </span>
                   )}
                 </span>
                 <ChevronRight

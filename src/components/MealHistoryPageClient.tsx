@@ -1,12 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthUser } from "@/hooks/useAuthUser";
 import { useMealLogs } from "@/hooks/useMealLogs";
 import { MealHistoryList } from "@/components/MealHistoryList";
 import type { MealLog } from "@/types/database";
+import { getMealOutcomes } from "@/app/actions/meal-outcome";
+import type { MealOutcomeKind } from "@/lib/analysis/meal-outcome";
 
 export function MealHistoryPageClient() {
   const supabase = useMemo(() => createClient(), []);
@@ -14,6 +16,31 @@ export function MealHistoryPageClient() {
   const { userId, loading: authLoading } = useAuthUser();
   const { logs, loading, reload } = useMealLogs(userId);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [outcomes, setOutcomes] = useState<
+    Record<string, { kind: MealOutcomeKind }>
+  >({});
+
+  useEffect(() => {
+    if (loading) return;
+    if (logs.length === 0) {
+      setOutcomes({});
+      return;
+    }
+    const ids = logs.slice(0, 40).map((l) => l.id);
+    let alive = true;
+    void (async () => {
+      const res = await getMealOutcomes(ids);
+      if (!alive || !res.ok) return;
+      const map: Record<string, { kind: MealOutcomeKind }> = {};
+      for (const id of Object.keys(res.outcomes)) {
+        map[id] = { kind: res.outcomes[id]!.kind };
+      }
+      setOutcomes(map);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [logs, loading]);
 
   async function removeLog(id: string) {
     if (!userId) return;
@@ -56,6 +83,7 @@ export function MealHistoryPageClient() {
         onDelete={(id) => void removeLog(id)}
         deletingId={deletingId}
         density="comfortable"
+        outcomes={outcomes}
       />
     </div>
   );

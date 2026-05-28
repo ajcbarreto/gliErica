@@ -22,6 +22,22 @@ export type TcaFood = {
   tca_version: string;
 };
 
+/**
+ * Tabela de equivalentes de HC (suporte clínico à contagem por porção).
+ * `portion_kind = 'equivalent'`: porção é "portion_g g de alimento = 10 g HC".
+ * `portion_kind = 'unit'`: porção é "1 unidade ~ portion_g g, com portion_carbs_g g HC".
+ */
+export type EquivFood = {
+  id: string;
+  category: string;
+  name: string;
+  portion_g: number;
+  portion_carbs_g: number;
+  household_measure: string | null;
+  portion_kind: "equivalent" | "unit";
+  sort_order: number;
+};
+
 export type CompositeMeal = {
   id: string;
   user_id: string;
