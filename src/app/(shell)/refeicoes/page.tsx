@@ -7,6 +7,7 @@ import {
   Compass,
   History,
   Layers,
+  Scale,
 } from "lucide-react";
 
 const links = [
@@ -38,6 +39,14 @@ const links = [
     title: "Explorar alimentos",
     description: "TCA (INSA), Open Food Facts e criar alimento novo.",
     Icon: Compass,
+    highlight: false,
+  },
+  {
+    href: "/biblioteca/equivalentes",
+    title: "Equivalentes de HC",
+    description:
+      "Tabela clínica de porções: quanto pesar para 10 g de HC + medidas caseiras.",
+    Icon: Scale,
     highlight: false,
   },
   {
