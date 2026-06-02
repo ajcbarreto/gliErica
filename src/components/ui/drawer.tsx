@@ -38,7 +38,7 @@ const DrawerContent = React.forwardRef<
     <DrawerOverlay />
     <VaulDrawer.Content
       ref={ref}
-      className={`fixed bottom-0 left-0 right-0 z-[61] mx-auto flex max-h-[min(92vh,720px)] max-w-md flex-col rounded-t-3xl border border-zinc-200 bg-surface pb-[max(1rem,env(safe-area-inset-bottom))] outline-none ${className ?? ""}`}
+      className={`fixed bottom-0 left-0 right-0 z-[61] mx-auto flex max-h-[min(92dvh,720px)] max-w-md flex-col rounded-t-3xl border border-zinc-200 bg-surface pb-[max(1rem,env(safe-area-inset-bottom))] outline-none ${className ?? ""}`}
       {...props}
     >
       {showHandle ? (

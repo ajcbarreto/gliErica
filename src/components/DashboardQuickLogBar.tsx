@@ -85,7 +85,7 @@ export function DashboardQuickLogBar() {
         }}
       >
         <DrawerContent>
-          <div className="flex max-h-[min(88vh,640px)] flex-col overflow-hidden px-4 pb-4 pt-0">
+          <div className="flex max-h-[min(88dvh,640px)] flex-col overflow-hidden px-4 pb-4 pt-0">
             <p className="text-center text-sm font-semibold text-zinc-900">
               Água e insulina
             </p>
