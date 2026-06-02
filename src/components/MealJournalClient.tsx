@@ -15,6 +15,7 @@ import {
 } from "@/lib/date";
 import { MEAL_SLOTS, mealSlotLabelPt, type MealSlot } from "@/lib/meal-slots";
 import { carbsFromFoodGrams, roundCarbs } from "@/lib/carb-math";
+import { computeMealBolus } from "@/lib/insulin-calc";
 import { foodIngredientLabel } from "@/lib/food-meta";
 import { usePullToRefresh } from "@/lib/use-pull-refresh";
 import { useMealLogs } from "@/hooks/useMealLogs";
@@ -95,6 +96,14 @@ export function MealJournalClient() {
 
   const [suggestionLogs, setSuggestionLogs] = useState<MealLog[]>([]);
   const [icrGramsPerUnit, setIcrGramsPerUnit] = useState<number | null>(null);
+  const [isfMgDlPerUnit, setIsfMgDlPerUnit] = useState<number | null>(null);
+  const [correctionTargetMgDl, setCorrectionTargetMgDl] = useState<
+    number | null
+  >(null);
+  const [currentGlucoseMgDl, setCurrentGlucoseMgDl] = useState<number | null>(
+    null
+  );
+  const [currentGlucoseAt, setCurrentGlucoseAt] = useState<string | null>(null);
 
   const foodsById = useMemo(
     () => Object.fromEntries(foods.map((f) => [f.id, f])),
@@ -106,22 +115,35 @@ export function MealJournalClient() {
     [lines]
   );
 
-  const suggestedInsulin =
-    icrGramsPerUnit != null &&
-    icrGramsPerUnit > 0 &&
-    (lines.length > 0 ? totalFromLines : parseFloat(gramsStr.replace(",", ".")) || 0) >
-      0
-      ? roundCarbs(
-          (lines.length > 0
-            ? totalFromLines
-            : Math.max(
-                0,
-                Math.round(
-                  (parseFloat(gramsStr.replace(",", ".")) || 0) * 10
-                ) / 10
-              )) / icrGramsPerUnit
-        )
-      : null;
+  const effectiveCarbsGrams = useMemo(() => {
+    if (lines.length > 0) return totalFromLines;
+    const parsed = parseFloat(gramsStr.replace(",", "."));
+    if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+    return Math.max(0, Math.round(parsed * 10) / 10);
+  }, [lines.length, totalFromLines, gramsStr]);
+
+  const bolus = useMemo(
+    () =>
+      computeMealBolus({
+        carbsGrams: effectiveCarbsGrams,
+        gramsPerUnit: icrGramsPerUnit,
+        currentMgDl: currentGlucoseMgDl,
+        targetMgDl: correctionTargetMgDl,
+        isfMgDlPerUnit,
+      }),
+    [
+      effectiveCarbsGrams,
+      icrGramsPerUnit,
+      currentGlucoseMgDl,
+      correctionTargetMgDl,
+      isfMgDlPerUnit,
+    ]
+  );
+
+  const missingClinicalSettings =
+    icrGramsPerUnit == null ||
+    isfMgDlPerUnit == null ||
+    correctionTargetMgDl == null;
 
   const loadFoodsAndComposites = useCallback(async () => {
     if (!userId) return;
@@ -180,16 +202,42 @@ export function MealJournalClient() {
   const loadProfileIcr = useCallback(async () => {
     if (!userId) {
       setIcrGramsPerUnit(null);
+      setIsfMgDlPerUnit(null);
+      setCorrectionTargetMgDl(null);
       return;
     }
     const { data } = await supabase
       .from("profiles")
-      .select("insulin_carb_grams_per_unit")
+      .select(
+        "insulin_carb_grams_per_unit, isf_drop_mg_dl_per_unit, correction_target_mg_dl"
+      )
       .eq("id", userId)
       .maybeSingle();
     const g = data?.insulin_carb_grams_per_unit;
-    setIcrGramsPerUnit(
-      typeof g === "number" && g > 0 ? g : null
+    setIcrGramsPerUnit(typeof g === "number" && g > 0 ? g : null);
+    const isf = data?.isf_drop_mg_dl_per_unit;
+    setIsfMgDlPerUnit(typeof isf === "number" && isf > 0 ? isf : null);
+    const tgt = data?.correction_target_mg_dl;
+    setCorrectionTargetMgDl(typeof tgt === "number" && tgt > 0 ? tgt : null);
+  }, [supabase, userId]);
+
+  const loadLatestGlucose = useCallback(async () => {
+    if (!userId) {
+      setCurrentGlucoseMgDl(null);
+      setCurrentGlucoseAt(null);
+      return;
+    }
+    const { data } = await supabase
+      .from("libre_glucose_readings")
+      .select("measured_at, value_mg_dl")
+      .eq("user_id", userId)
+      .order("measured_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const v = data?.value_mg_dl;
+    setCurrentGlucoseMgDl(typeof v === "number" && v > 0 ? Number(v) : null);
+    setCurrentGlucoseAt(
+      typeof data?.measured_at === "string" ? data.measured_at : null
     );
   }, [supabase, userId]);
 
@@ -198,12 +246,14 @@ export function MealJournalClient() {
     void loadFoodsAndComposites();
     void loadSuggestions();
     void loadProfileIcr();
+    void loadLatestGlucose();
   });
 
   useEffect(() => {
     void loadFoodsAndComposites();
     void loadProfileIcr();
-  }, [loadFoodsAndComposites, loadProfileIcr]);
+    void loadLatestGlucose();
+  }, [loadFoodsAndComposites, loadProfileIcr, loadLatestGlucose]);
 
   useEffect(() => {
     void loadSuggestions();
@@ -870,16 +920,62 @@ export function MealJournalClient() {
                 />
               </div>
             )}
-            {suggestedInsulin != null && suggestedInsulin > 0 && (
-              <p className="mt-2 text-xs text-zinc-600">
-                Sugestão (regra nas definições: {icrGramsPerUnit} g HC / 1 UI): ~{" "}
-                <span className="font-semibold tabular-nums text-violet-800">
-                  {suggestedInsulin} UI
-                </span>
-                {" — "}
-                confirma com o teu médico e ajusta o campo abaixo.
-              </p>
-            )}
+            {missingClinicalSettings ? (
+              <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-900">
+                Para sugerir dose com correção, define{" "}
+                <strong>ICR, ISF e Alvo</strong> em{" "}
+                <Link
+                  href="/definicoes"
+                  className="font-semibold underline underline-offset-2"
+                >
+                  Definições
+                </Link>
+                .
+              </div>
+            ) : bolus.totalUnits != null && bolus.totalUnits > 0 ? (
+              <div className="mt-2 space-y-1 text-xs text-zinc-700">
+                <p>
+                  Sugestão:{" "}
+                  <span className="text-base font-semibold tabular-nums text-violet-800">
+                    ~{bolus.totalUnits} UI
+                  </span>{" "}
+                  <span className="text-[11px] text-zinc-500">
+                    (arredondado a 0,5)
+                  </span>
+                </p>
+                <p className="text-[11px] tabular-nums text-zinc-500">
+                  {bolus.mealUnits ?? 0} refeição
+                  {" + "}
+                  {bolus.correctionUnits ?? 0} correção
+                  {bolus.correctionUnits != null && currentGlucoseMgDl != null
+                    ? ` · glicemia ${Math.round(currentGlucoseMgDl)} − alvo ${correctionTargetMgDl} = ${
+                        bolus.deltaAboveTargetMgDl ?? 0
+                      } mg/dL ÷ ISF ${isfMgDlPerUnit}`
+                    : ""}
+                </p>
+                <p className="text-[11px] text-zinc-500">
+                  ICR {icrGramsPerUnit} g/UI · ISF {isfMgDlPerUnit} mg/dL/UI ·
+                  Alvo {correctionTargetMgDl} mg/dL
+                </p>
+                {currentGlucoseMgDl == null ? (
+                  <p className="text-[11px] text-amber-800">
+                    Sem leitura Libre recente — correção a 0. Atualiza o Libre
+                    para sugestão completa.
+                  </p>
+                ) : currentGlucoseAt &&
+                  Date.now() - new Date(currentGlucoseAt).getTime() >
+                    20 * 60 * 1000 ? (
+                  <p className="text-[11px] text-amber-700">
+                    Última leitura Libre tem +20 min — confirma a glicemia
+                    actual antes de injectar.
+                  </p>
+                ) : null}
+                <p className="text-[10px] text-zinc-400">
+                  Orientação informativa — confirma com a equipa clínica e
+                  ajusta no campo abaixo.
+                </p>
+              </div>
+            ) : null}
           </div>
 
           <div>
@@ -996,7 +1092,7 @@ export function MealJournalClient() {
       >
         <DrawerContent
           showHandle
-          className="flex max-h-[min(70vh,420px)] flex-col px-0 pt-0"
+          className="flex max-h-[min(70dvh,420px)] flex-col px-0 pt-0"
         >
           <VaulDrawer.Title className="sr-only">Refeição composta</VaulDrawer.Title>
           <div className="flex items-center justify-between border-b border-zinc-100 p-4">

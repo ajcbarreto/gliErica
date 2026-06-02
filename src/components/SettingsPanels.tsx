@@ -367,8 +367,9 @@ export function InsulinRulePanel() {
 }
 
 /**
- * ISF e alvo de correção em mg/dL (armazenamento canónico na BD).
- * Serve de referência para futuras UIs; não calcula doses automaticamente.
+ * ISF e alvo de correção em mg/dL.
+ * Obrigatórios: usados no cálculo de dose de refeição (componente de correção)
+ * em conjunto com o ICR e a glicemia atual do Libre.
  */
 export function CorrectionSensitivityPanel() {
   const supabase = createClient();
@@ -410,26 +411,26 @@ export function CorrectionSensitivityPanel() {
     e.preventDefault();
     setMsg(null);
 
-    let isfVal: number | null = null;
     const isfTrim = isf.trim();
-    if (isfTrim !== "") {
-      const v = parseFloat(isfTrim.replace(",", "."));
-      if (Number.isNaN(v) || v <= 0) {
-        setMsg("ISF inválido: indica mg/dL por UI ou deixa vazio.");
-        return;
-      }
-      isfVal = v;
+    if (isfTrim === "") {
+      setMsg("Indica o ISF (mg/dL baixados por 1 UI) — campo obrigatório.");
+      return;
+    }
+    const isfVal = parseFloat(isfTrim.replace(",", "."));
+    if (Number.isNaN(isfVal) || isfVal <= 0) {
+      setMsg("ISF inválido: indica mg/dL por UI (>0).");
+      return;
     }
 
-    let targetVal: number | null = null;
     const targetTrim = target.trim();
-    if (targetTrim !== "") {
-      const v = parseFloat(targetTrim.replace(",", "."));
-      if (Number.isNaN(v) || v <= 0) {
-        setMsg("Alvo inválido: indica mg/dL ou deixa vazio.");
-        return;
-      }
-      targetVal = v;
+    if (targetTrim === "") {
+      setMsg("Indica o alvo de glicemia (mg/dL) — campo obrigatório.");
+      return;
+    }
+    const targetVal = parseFloat(targetTrim.replace(",", "."));
+    if (Number.isNaN(targetVal) || targetVal <= 0) {
+      setMsg("Alvo inválido: indica mg/dL (>0).");
+      return;
     }
 
     if (!userId) {
@@ -474,13 +475,14 @@ export function CorrectionSensitivityPanel() {
       className="rounded-2xl border border-zinc-200/90 bg-surface p-4 shadow-card"
     >
       <p className="text-sm font-medium text-zinc-900">
-        Correção e sensibilidade (opcional)
+        Correção e sensibilidade
       </p>
       <p className="mt-1 text-xs text-zinc-500">
         Valores acordados com a equipa: quantos <strong>mg/dL</strong> baixa{" "}
         <strong>1 UI</strong> de insulina rápida (fator de sensibilidade / ISF) e
-        o teu <strong>alvo em mg/dL</strong> para correções. Guardados para
-        referência; a app <em>não</em> sugere doses de correção.
+        o teu <strong>alvo em mg/dL</strong> para correções. São usados nas
+        refeições para somar a componente de correção à dose de HC quando a
+        glicemia atual estiver acima do alvo.
       </p>
       <div className="mt-3 space-y-3">
         <div>
