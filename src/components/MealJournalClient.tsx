@@ -1092,7 +1092,7 @@ export function MealJournalClient() {
       >
         <DrawerContent
           showHandle
-          className="flex max-h-[min(70dvh,420px)] flex-col px-0 pt-0"
+          className="flex flex-col px-0 pt-0"
         >
           <VaulDrawer.Title className="sr-only">Refeição composta</VaulDrawer.Title>
           <div className="flex items-center justify-between border-b border-zinc-100 p-4">

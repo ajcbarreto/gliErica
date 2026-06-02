@@ -623,7 +623,7 @@ export function LibreDashboardSection() {
             >
               <DrawerContent
                 showHandle
-                className="max-h-[min(85dvh,560px)] overflow-y-auto px-4 pt-0"
+                className="overflow-y-auto px-4 pt-0"
               >
                 {selectedMeal ? (
                   <>

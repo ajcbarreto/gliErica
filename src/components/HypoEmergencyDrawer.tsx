@@ -107,7 +107,7 @@ export function HypoEmergencyDrawer({ open, onOpenChange }: Props) {
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent showHandle className="max-h-[min(90dvh,640px)] overflow-y-auto px-4 pt-0">
+      <DrawerContent showHandle className="overflow-y-auto px-4 pt-0">
         <VaulDrawer.Title className="sr-only">Emergência hipo</VaulDrawer.Title>
         <div className="pb-2">
           <h2 className="text-lg font-semibold text-zinc-900">

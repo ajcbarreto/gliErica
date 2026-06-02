@@ -31,7 +31,7 @@ const DialogContent = React.forwardRef<
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
-      className={`fixed left-1/2 top-1/2 z-[71] w-[min(calc(100vw-1.5rem),28rem)] max-h-[min(90dvh,32rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-zinc-200 bg-surface p-4 shadow-lg outline-none ${className ?? ""}`}
+      className={`fixed left-1/2 top-1/2 z-[71] w-[min(calc(100vw-1.5rem),28rem)] max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-1rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-zinc-200 bg-surface p-4 shadow-lg outline-none ${className ?? ""}`}
       {...props}
     >
       {children}

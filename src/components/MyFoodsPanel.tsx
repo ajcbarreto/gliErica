@@ -341,7 +341,7 @@ export function MyFoodsPanel() {
       >
         <DrawerContent
           showHandle
-          className="max-h-[min(88dvh,560px)] overflow-y-auto px-5 pt-0"
+          className="overflow-y-auto px-5 pt-0"
         >
           {logFood ? (
             <>
@@ -430,7 +430,7 @@ export function MyFoodsPanel() {
       >
         <DrawerContent
           showHandle
-          className="max-h-[min(92dvh,640px)] overflow-y-auto px-5 pt-0"
+          className="overflow-y-auto px-5 pt-0"
         >
           {editFood ? (
             <>

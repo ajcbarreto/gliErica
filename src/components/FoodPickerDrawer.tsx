@@ -259,7 +259,7 @@ export function FoodPickerDrawer({
     >
       <DrawerContent
         showHandle
-        className="flex max-h-[min(85dvh,560px)] flex-col px-0 pt-0"
+        className="flex flex-col px-0 pt-0"
       >
         <VaulDrawer.Title className="sr-only">
           {view === "create" ? "Novo alimento" : "Escolher alimento"}

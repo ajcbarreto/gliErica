@@ -512,7 +512,7 @@ function OffBarcodeScannerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showClose className="max-h-[min(90dvh,40rem)] w-[min(calc(100vw-1.5rem),24rem)] p-0">
+      <DialogContent showClose className="w-[min(calc(100vw-1.5rem),24rem)] p-0">
         <div className="border-b border-zinc-200 px-4 pb-3 pt-4 pr-12">
           <DialogTitle className="text-base">Ler código de barras</DialogTitle>
           <DialogDescription className="mt-1 text-xs text-zinc-600">
