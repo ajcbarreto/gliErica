@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LineChart, Syringe } from "lucide-react";
+import { CalendarRange, LineChart, Syringe } from "lucide-react";
 
 export default function GraficosPage() {
   return (
@@ -15,6 +15,25 @@ export default function GraficosPage() {
           Curvas de glicemia e análises com os teus dados na app.
         </p>
       </header>
+
+      <Link
+        href="/graficos/dia"
+        className="group rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-card transition hover:border-emerald-300 hover:shadow-md"
+      >
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 transition group-hover:bg-emerald-200/80">
+          <CalendarRange className="h-5 w-5" aria-hidden />
+        </span>
+        <p className="mt-4 text-sm font-semibold text-zinc-900">
+          Relatório diário
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-zinc-600">
+          Curva 24h com refeições e insulina marcadas, KPIs do dia (TIR, média,
+          GMI) e cronologia para analisares os impactos ponto a ponto.
+        </p>
+        <p className="mt-3 text-xs font-medium text-emerald-700">
+          Abrir relatório →
+        </p>
+      </Link>
 
       <Link
         href="/graficos/insulina-hc"
