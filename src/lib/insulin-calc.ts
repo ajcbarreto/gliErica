@@ -46,6 +46,44 @@ function round1(n: number): number {
   return Math.round(n * 10) / 10;
 }
 
+export type CorrectionDose = {
+  /** UI de correção a 1 casa decimal; 0 se glicemia ≤ alvo. null se faltarem dados. */
+  units: number | null;
+  /** Mesma dose arredondada a 0,5 UI (caneta). null se units null. */
+  unitsHalf: number | null;
+  /** Delta mg/dL acima do alvo (pode ser ≤ 0). null se faltarem dados. */
+  deltaAboveTargetMgDl: number | null;
+};
+
+/**
+ * Dose de correção isolada: max(0, (glicemia − alvo) ÷ ISF).
+ * Não-negativa por segurança (glicemia ≤ alvo ⇒ 0).
+ */
+export function computeCorrectionDose(input: {
+  currentMgDl: number | null;
+  targetMgDl: number | null;
+  isfMgDlPerUnit: number | null;
+}): CorrectionDose {
+  const { currentMgDl, targetMgDl, isfMgDlPerUnit } = input;
+  if (
+    isfMgDlPerUnit == null ||
+    isfMgDlPerUnit <= 0 ||
+    targetMgDl == null ||
+    targetMgDl <= 0 ||
+    currentMgDl == null ||
+    currentMgDl <= 0
+  ) {
+    return { units: null, unitsHalf: null, deltaAboveTargetMgDl: null };
+  }
+  const delta = currentMgDl - targetMgDl;
+  const units = delta > 0 ? round1(delta / isfMgDlPerUnit) : 0;
+  return {
+    units,
+    unitsHalf: roundToHalfUnit(units),
+    deltaAboveTargetMgDl: delta,
+  };
+}
+
 export function computeMealBolus(input: MealBolusInputs): MealBolusBreakdown {
   const {
     carbsGrams,
@@ -60,20 +98,13 @@ export function computeMealBolus(input: MealBolusInputs): MealBolusBreakdown {
       ? round1(carbsGrams / gramsPerUnit)
       : null;
 
-  let correctionUnits: number | null = null;
-  let deltaAboveTargetMgDl: number | null = null;
-  if (
-    isfMgDlPerUnit != null &&
-    isfMgDlPerUnit > 0 &&
-    targetMgDl != null &&
-    targetMgDl > 0 &&
-    currentMgDl != null &&
-    currentMgDl > 0
-  ) {
-    const delta = currentMgDl - targetMgDl;
-    deltaAboveTargetMgDl = delta;
-    correctionUnits = delta > 0 ? round1(delta / isfMgDlPerUnit) : 0;
-  }
+  const correction = computeCorrectionDose({
+    currentMgDl,
+    targetMgDl,
+    isfMgDlPerUnit,
+  });
+  const correctionUnits = correction.units;
+  const deltaAboveTargetMgDl = correction.deltaAboveTargetMgDl;
 
   const computedSum =
     (mealUnits ?? 0) + (correctionUnits ?? 0);

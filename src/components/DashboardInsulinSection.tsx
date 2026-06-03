@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuthUser } from "@/hooks/useAuthUser";
 import { getLocalDateKey } from "@/lib/date";
 import { usePullToRefresh } from "@/lib/use-pull-refresh";
+import { computeCorrectionDose } from "@/lib/insulin-calc";
 import type { InsulinKind } from "@/types/database";
 import {
   Dialog,
@@ -70,6 +71,14 @@ export function DashboardInsulinSection({
   const [basalSum, setBasalSum] = useState(0);
   const [carbsDay, setCarbsDay] = useState(0);
   const [gramsPerUnit, setGramsPerUnit] = useState<number | null>(null);
+  const [isfMgDlPerUnit, setIsfMgDlPerUnit] = useState<number | null>(null);
+  const [correctionTargetMgDl, setCorrectionTargetMgDl] = useState<
+    number | null
+  >(null);
+  const [currentGlucoseMgDl, setCurrentGlucoseMgDl] = useState<number | null>(
+    null
+  );
+  const [currentGlucoseAt, setCurrentGlucoseAt] = useState<string | null>(null);
   const [entries, setEntries] = useState<
     { id: string; units: number; kind: InsulinKind; created_at: string }[]
   >([]);
@@ -102,10 +111,13 @@ export function DashboardInsulinSection({
       { data: profile },
       { data: insulinRows },
       { data: carbRows },
+      { data: glucoseRow },
     ] = await Promise.all([
       supabase
         .from("profiles")
-        .select("insulin_carb_grams_per_unit")
+        .select(
+          "insulin_carb_grams_per_unit, isf_drop_mg_dl_per_unit, correction_target_mg_dl"
+        )
         .eq("id", userId)
         .maybeSingle(),
       supabase
@@ -119,10 +131,29 @@ export function DashboardInsulinSection({
         .select("grams_carbs")
         .eq("user_id", userId)
         .eq("logged_on", day),
+      supabase
+        .from("libre_glucose_readings")
+        .select("measured_at, value_mg_dl")
+        .eq("user_id", userId)
+        .order("measured_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
     const g = profile?.insulin_carb_grams_per_unit;
     setGramsPerUnit(typeof g === "number" && g > 0 ? g : null);
+    const isf = profile?.isf_drop_mg_dl_per_unit;
+    setIsfMgDlPerUnit(typeof isf === "number" && isf > 0 ? isf : null);
+    const tgt = profile?.correction_target_mg_dl;
+    setCorrectionTargetMgDl(typeof tgt === "number" && tgt > 0 ? tgt : null);
+
+    const gv = glucoseRow?.value_mg_dl;
+    setCurrentGlucoseMgDl(typeof gv === "number" && gv > 0 ? Number(gv) : null);
+    setCurrentGlucoseAt(
+      typeof glucoseRow?.measured_at === "string"
+        ? glucoseRow.measured_at
+        : null
+    );
 
     const list = (insulinRows ?? []) as {
       id: string;
@@ -279,6 +310,18 @@ export function DashboardInsulinSection({
       ? comparisonHint(mealRapidSum, suggested, carbsDay)
       : null;
 
+  const correctionDose = computeCorrectionDose({
+    currentMgDl: currentGlucoseMgDl,
+    targetMgDl: correctionTargetMgDl,
+    isfMgDlPerUnit,
+  });
+  const correctionSettingsMissing =
+    isfMgDlPerUnit == null || correctionTargetMgDl == null;
+  const glucoseStaleMin =
+    currentGlucoseAt != null
+      ? Math.round((Date.now() - new Date(currentGlucoseAt).getTime()) / 60000)
+      : null;
+
   const shownEntries = embedded ? entries : entries.slice(0, 8);
 
   const shellClass = embedded
@@ -366,6 +409,79 @@ export function DashboardInsulinSection({
               </button>
             ))}
           </div>
+
+          {kind === "correction" && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50/70 px-3 py-2.5">
+              {correctionSettingsMissing ? (
+                <p className="text-[11px] leading-relaxed text-amber-900">
+                  Define o <strong>ISF</strong> e o <strong>alvo</strong> em
+                  Definições → Correção e sensibilidade para veres a dose
+                  sugerida.
+                </p>
+              ) : currentGlucoseMgDl == null ? (
+                <p className="text-[11px] leading-relaxed text-amber-900">
+                  Sem leitura Libre recente para calcular a correção. Atualiza o
+                  Libre no dashboard ou usa o teu medidor.
+                </p>
+              ) : correctionDose.deltaAboveTargetMgDl != null &&
+                correctionDose.deltaAboveTargetMgDl <= 0 ? (
+                <p className="text-[11px] leading-relaxed text-amber-900">
+                  Glicemia atual{" "}
+                  <span className="font-semibold tabular-nums">
+                    {Math.round(currentGlucoseMgDl)} mg/dL
+                  </span>{" "}
+                  já está no alvo ({correctionTargetMgDl}) ou abaixo — sem
+                  correção sugerida.
+                </p>
+              ) : (
+                <>
+                  <p className="text-[11px] text-amber-900">
+                    Para baixar até{" "}
+                    <span className="font-semibold tabular-nums">
+                      {correctionTargetMgDl} mg/dL
+                    </span>
+                    :
+                  </p>
+                  <p className="mt-0.5 text-amber-950">
+                    <span className="text-xl font-semibold tabular-nums text-amber-900">
+                      ~{correctionDose.unitsHalf} UI
+                    </span>{" "}
+                    <span className="text-[11px] text-amber-800">
+                      de correção
+                    </span>
+                  </p>
+                  <p className="mt-0.5 text-[11px] tabular-nums text-amber-800">
+                    {Math.round(currentGlucoseMgDl)} − {correctionTargetMgDl} ={" "}
+                    {correctionDose.deltaAboveTargetMgDl} mg/dL ÷ ISF{" "}
+                    {isfMgDlPerUnit} = {correctionDose.units} UI
+                    {glucoseStaleMin != null && glucoseStaleMin > 20 && (
+                      <span className="text-amber-700">
+                        {" "}
+                        · leitura tem {glucoseStaleMin} min, confirma
+                      </span>
+                    )}
+                  </p>
+                  {correctionDose.unitsHalf != null &&
+                    correctionDose.unitsHalf > 0 && (
+                      <button
+                        type="button"
+                        disabled={adding}
+                        onClick={() =>
+                          void addUnits(correctionDose.unitsHalf!)
+                        }
+                        className="mt-2 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-amber-700 disabled:opacity-50"
+                      >
+                        Registar ~{correctionDose.unitsHalf} UI correção
+                      </button>
+                    )}
+                  <p className="mt-1.5 text-[10px] leading-relaxed text-amber-700">
+                    Orientação — confirma com a equipa de saúde antes de
+                    injetar.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
 
           <div className="flex flex-wrap gap-2">
             {QUICK_UNITS.map((u) => (
