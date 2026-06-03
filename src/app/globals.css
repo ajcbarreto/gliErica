@@ -14,6 +14,18 @@ html {
   overscroll-behavior-y: contain;
 }
 
+/*
+ * Anti auto-zoom do iOS: o Safari faz zoom ao focar qualquer campo com
+ * font-size < 16px. Forçamos 16px em todos os controlos de formulário.
+ * Regra fora de @layer para vencer as utilities Tailwind (text-sm/text-xs)
+ * sem !important. Não altera buttons (não disparam zoom).
+ */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
 body {
   @apply bg-canvas text-zinc-800 antialiased;
   min-height: 100dvh;
